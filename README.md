@@ -8,13 +8,18 @@
 **Table of Contents**
 
 - [Installation](#installation)
+- [Examples](#Examples)
 - [License](#license)
 
 ## Installation
-
+1. Download latest release
+2. Install from wheel file:
 ```console
-pip install bfportf
+pip install "path_to_the_bfportf_wheel_file.whl"
 ```
+
+## Examples
+See [Example folder](https://github.com/answering007/bfportf/tree/master/examples)
 
 ## License
 

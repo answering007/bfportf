@@ -5,9 +5,10 @@ import pandas as pd
 import pytest
 
 from bfportf.exceptions import UnknownSymbolError
+from bfportf.metrics.basic import pnl_target, sharpe_target
+from bfportf.portfolio import get_portfolio_return
 from bfportf.report import create_report
-from bfportf.targets import pnl_target, sharpe_target
-from bfportf.utils import get_portfolio_return, scale_return_data
+from bfportf.scaling import scale_return_data
 
 
 def test_report_values_match_direct_calculation(returns: pd.DataFrame) -> None:

@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 import numpy as np
 import pandas as pd
 
-from bfportf.targets import (
+from bfportf.metrics.basic import (
     cagr_target,
     kurtosis_target,
     max_drawdown_target,
@@ -17,7 +17,7 @@ from bfportf.targets import (
     skew_target,
     sortino_target,
 )
-from bfportf.utils import WeightLike, get_portfolio_return
+from bfportf.portfolio import WeightLike, get_portfolio_return
 
 
 def _to_array(series: Union[pd.Series, np.ndarray]) -> np.ndarray:

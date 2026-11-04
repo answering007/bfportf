@@ -45,10 +45,10 @@
 | Решения | Зафиксированы ADR-1 (breaking changes в 0.2.0) и ADR-2 (единый тулчейн — `uv`) | `[x]` |
 | 0 | Блокеры P0: работоспособность на актуальных numpy/pandas/scipy, чистый линт | `[x]` (0.1.2) |
 | 1 | Корректность расчётов: CAGR, NaN/inf, tolerance, семантика весов, валидация | `[x]` (0.1.3) |
-| 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[ ]` |
+| 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[x]` (0.2.0) |
 | 3 | Упаковка, CI, документация, данные примеров | `[ ]` |
 
-**Готовность к использованию:** после этапа 1 (0.1.3) дефекты P0 и P1 закрыты: 85 тестов, покрытие `src/bfportf` — 95%, вырожденные данные больше не дают `inf`/`nan`, ошибки данных и символов — типизированные исключения. Остаются задачи P2 (архитектура, CI, упаковка).
+**Готовность к использованию:** после этапа 2 (0.2.0) пакет имеет публичный API (`bfportf.__all__`), три стратегии поиска, реестр метрик с направлением и векторный fast-path (2.7x). 124 теста, покрытие 96%, `mypy src` — 0 ошибок. Остаются задачи P2, связанные с CI, метаданными и данными примеров (этап 3).
 
 ---
 
@@ -92,6 +92,20 @@
 
 Проверки этапа 1: `uv run pytest -q --cov=bfportf` -> 85 passed, покрытие 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> те же 6 `import-untyped` (baseline этапа 0, новых нет).
 
+### Этап 2 (0.2.0) — выполнено
+
+- `[x]` Слои: `data.py`, `scaling.py`, `portfolio.py`, `metrics/` (`base`, `basic`, `registry`), `search/` (`base`, `greedy`, `beam`, `exhaustive`); `utils.py` — только `return_to_price` / `price_to_return` / `drawdown_pct`.
+- `[x]` `Metric(name, func, maximize, vectorized)` + `METRICS` (10 метрик) + `resolve_metric("sharpe" | Metric | callable)`.
+- `[x]` **ADR-3.** `GreedySearch` (дефолт), `BeamSearch(width=5)`, `ExhaustiveSearch(max_combinations=2_000_000)`, протокол `SearchStrategy` и `SearchConfig`.
+- `[x]` **ADR-4.** `find_portfolios` -> `list[PortfolioResult]`; `results_to_frame()`; `PortfolioResult.to_dict()/to_frame()`.
+- `[x]` Публичный API: `__init__.py` (`__all__` — 35 имён), `py.typed`, `__version__`; `bfportf.targets` и `bfportf.optimization` сохранены как фасады.
+- `[x]` **P2-8.** Векторный fast-path: 200 x 1000, `max_number=3` — **0.6 c против 1.6 c** (2.7x) при идентичном результате.
+- `[x]` **P2-7.** `pandas-stubs` / `types-tqdm`, `[tool.mypy]` с `disallow_untyped_defs` — `uv run mypy src` -> **0 ошибок** (было 6).
+- `[x]` Тесты: `test_search.py`, `test_strategies.py` (exhaustive = brute force, beam >= greedy, `width=1` = greedy), `test_metrics_registry.py` (vectorized = scalar), `test_api.py`, `test_smoke.py`; слои — `test_data_scaling.py`, `test_portfolio.py`, `test_utils.py`.
+- `[x]` Примеры перегенерированы под новый API и очищены от output-ов (NB02: 1 МБ -> 5 КБ); README переписан; добавлен `CHANGELOG.md`.
+
+Проверки этапа 2: `uv run pytest -q --cov=bfportf` -> 124 passed, покрытие 96%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success, 0 issues.
+
 ---
 
 ## Принятые решения (ADR)
@@ -100,12 +114,16 @@
 |---|---|---|---|
 | ADR-1 | 2026-11-04 | **Обратная совместимость API 0.1.x не поддерживается.** Breaking changes допускаются в минорном релизе 0.2.0 (semver для 0.x: минор = breaking) | Не тратим силы на deprecation-шимы и дубли сигнатур. Вместо шимов: раздел `Breaking changes` в `CHANGELOG.md`, обновлённые ноутбуки-примеры и README. Патч-релизы 0.1.2 / 0.1.3 остаются совместимыми (только исправления) |
 | ADR-2 | 2026-11-04 | **Единый тулчейн — `uv`.** Зависимости и dev-группы в `pyproject.toml` (`dependencies`, `[dependency-groups]`, `[project.optional-dependencies]`); воспроизводимость — `uv lock` + `uv.lock` в git; запуск задач — `uv run ...` | `hatchling` остаётся **только** build-backend в `[build-system]`. Удаляются `[tool.hatch.envs.*]`, `[[tool.hatch.envs.all.matrix]]` и hatch-скрипты; их заменяют `uv run pytest`, `uv run ruff check .`, `uv run black --check .`, `uv run mypy src`. Локальный `.venv` уже создан `uv 0.12.13`, `hatch` в PATH отсутствует. CI — `uv sync --locked` |
+| ADR-3 | 2026-11-04 | **Стратегии поиска публичны.** `GreedySearch` (по умолчанию), `BeamSearch(width=5)`, `ExhaustiveSearch(max_combinations=2_000_000)` — классы за протоколом `SearchStrategy`; `find_portfolios(..., strategy=...)` | Разные компромиссы «качество/время»: greedy — быстро и детерминированно, beam — обходит часть локальных оптимумов за `B`-кратное время, exhaustive — гарантированный оптимум на маленьких вселенных (n <= 15) и эталон для тестов. `max_combinations` защищает от случайного запуска на 700 бумагах (~57 млн сочетаний). `find_next_symbol` / `find_portfolio_for_symbol` остаются внутренними |
+| ADR-4 | 2026-11-04 | **Результат поиска — `list[PortfolioResult]`.** `PortfolioResult(symbols: tuple[str, ...], weights: pd.Series, value: float, metric_name: str)` + `results_to_frame()`; `maximize=None` берётся из `Metric` | Убирает `np.ndarray` в object-колонке DataFrame, даёт типизацию и веса портфеля. Breaking change разрешён ADR-1; примеры и README обновляются, табличное представление сохраняется через `results_to_frame` |
 
 Следствия по этапам:
 
 - **Этап 0:** вместо правки hatch-матрицы — удаление hatch-окружений и скриптов; `uv lock` для актуализации lock-файла.
 - **Этап 2:** пункт про deprecation-шимы отменяется (ADR-1) — вместо него `Breaking changes` в CHANGELOG + обновление примеров.
 - **Этап 3:** `[dependency-groups] dev`, `uv sync --locked` в CI, pre-commit через `uv run`.
+- **Этап 2 (ADR-3):** три стратегии в `search/`, `greedy` по умолчанию, `exhaustive` дополнительно как тест-эталон.
+- **Этап 2 (ADR-4):** `find_portfolios` -> `list[PortfolioResult]`; примеры и README переводятся на `found[0].symbols`.
 
 ---
 
@@ -122,11 +140,12 @@
 | `.github` | отсутствует |
 | `uv` | 0.12.13 (`C:/Users/Pavel/.local/bin/uv.exe`); локальный `.venv` создан `uv` |
 | `hatch` | в PATH отсутствует (не установлен) — учтено в ADR-2 |
-| `tests/` | 85 тестов (этап 1), покрытие `src/bfportf` — 95% |
+| `tests/` | 124 теста (этап 2), покрытие `src/bfportf` — 96% |
 | `examples/prices.csv` | 14.5 МБ, в индексе git |
 | ruff | 0.17.3 (`uv run ruff`) — линт и `ruff format` |
-| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 85 passed, 95% |
-| mypy | 2.4.1 — 6 ошибок `import-untyped` (baseline этапа 0, после этапа 1 новых нет) |
+| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 124 passed, 96% |
+| mypy | 2.4.1 + `pandas-stubs`/`types-tqdm`; `uv run mypy src` -> 0 ошибок |
+| Производительность | 200 бумаг x 1000 строк, `max_number=3`: 0.6 c (векторные метрики) против 1.6 c (скалярный путь) |
 
 Команды воспроизведения исходных дефектов (до этапа 0):
 
@@ -181,15 +200,15 @@ python -c "import numpy as np; print(hasattr(np, 'in1d'))"           # False
 
 | ID | Область | Дефект / задача | Статус |
 |---|---|---|---|
-| P2-1 | Тесты | `tests/` пуст (только `__init__.py`) — покрытие 0% | `[ ]` |
+| P2-1 | Тесты | `tests/` пуст (только `__init__.py`) — покрытие 0% | `[x]` |
 | P2-2 | CI | `.github` отсутствует, workflow был удалён в коммите `c3240e1` | `[ ]` |
 | P2-3 | Метаданные | URL-ы ведут на `github.com/unknown/bfportf` (`pyproject.toml:34-36`), автор-заглушка `U.N. Owen <void@some.where>` (`__about__.py:1`), `license = "MIT"` требует `hatchling>=1.27` (PEP 639), build-backend не запинен | `[ ]` |
-| P2-4 | Данные примеров | `examples/prices.csv` — 14.5 МБ в git, при этом ноутбуки грузят его по HTTPS; sdist раздут (tar.gz ~7 МБ); output-ы ноутбуков не стрипнуты (NB02 — 1 МБ) | `[ ]` |
-| P2-5 | Тулчейн | Двойственность: `uv.lock` в репо, а задачи — в hatch-env; нет `[dependency-groups]` | `[ ]` |
-| P2-6 | Архитектура | `utils.py` смешивает конверсии цен, склейку портфеля и скоринг; `optimization.py` совмещает стратегию поиска и метрику; `__init__.py` пуст — нет публичного API, `py.typed`, `__version__`; нет исключений и логирования | `[ ]` |
-| P2-7 | Типизация | Нет `[tool.mypy]`, нет `py.typed`, `np.float64` вместо `NDArray[np.float64]` в аннотациях | `[ ]` |
-| P2-8 | Производительность | `np.apply_along_axis` (Python-цикл по кандидатам) + аллокация `returns + initial_returns` на каждом шаге; возможна векторизация по матрице (T x N) | `[ ]` |
-| P2-9 | Документация | README 26 строк без API/Quickstart/раздела о методологии весов; нет `CHANGELOG.md` | `[ ]` |
+| P2-4 | Данные примеров | `examples/prices.csv` — 14.5 МБ в git, при этом ноутбуки грузят его по HTTPS; sdist раздут (tar.gz ~7 МБ); output-ы ноутбуков не стрипнуты (NB02 — 1 МБ) | `[~]` |
+| P2-5 | Тулчейн | Двойственность: `uv.lock` в репо, а задачи — в hatch-env; нет `[dependency-groups]` | `[x]` |
+| P2-6 | Архитектура | `utils.py` смешивает конверсии цен, склейку портфеля и скоринг; `optimization.py` совмещает стратегию поиска и метрику; `__init__.py` пуст — нет публичного API, `py.typed`, `__version__`; нет исключений и логирования | `[x]` |
+| P2-7 | Типизация | Нет `[tool.mypy]`, нет `py.typed`, `np.float64` вместо `NDArray[np.float64]` в аннотациях | `[x]` |
+| P2-8 | Производительность | `np.apply_along_axis` (Python-цикл по кандидатам) + аллокация `returns + initial_returns` на каждом шаге; возможна векторизация по матрице (T x N) | `[x]` |
+| P2-9 | Документация | README 26 строк без API/Quickstart/раздела о методологии весов; нет `CHANGELOG.md` | `[x]` |
 | P2-10 | Линт примеров | ruff 0.17 линтит `.ipynb`: в `examples/` 16 замечаний (`E402`/`T201`/`E501`). Временно `extend-exclude = ["examples"]`; включить обратно после `nbstripout` (этап 3) | `[x]` (временно) |
 
 ---
@@ -295,7 +314,7 @@ src/bfportf/
   metrics/
     base.py          # Metric(name, func, maximize, vectorized) + Protocol
     basic.py         # pnl, cagr, max_drawdown, profit_factor, recovery_factor, sharpe, sortino, skew, kurtosis, autocorr
-    registry.py      # METRICS = {"sharpe": Metric(..., maximize=True), "max_drawdown": Metric(..., maximize=False)}
+    registry.py      # METRICS = {"sharpe": Metric(..., maximize=True), "max_drawdown": Metric(..., maximize=True, # negative values)}
   search/
     base.py          # SearchStrategy Protocol, SearchConfig, PortfolioResult
     greedy.py        # текущий forward selection
@@ -306,18 +325,32 @@ src/bfportf/
 
 ### Чек-лист
 
-- `[ ]` **P2-6.** Разнести код по слоям согласно схеме выше; `utils.py` оставить только с конверсиями цен/return и `drawdown_pct`.
-- `[ ]` **P2-6.** `Metric` как объект: `name`, `func`, `maximize`, опциональный векторный `vectorized(matrix) -> vector`; реестр `METRICS`.
-- `[ ]` **P2-6.** `find_portfolios(returns, metric: str | Metric | Callable, ...)`; при `Callable` параметр `maximize` сохраняется (обратная совместимость).
-- `[ ]` **P2-6.** `SearchStrategy` + `SearchConfig(max_number, tolerance, normalize, min_weight)` + `PortfolioResult(symbols, weights, value, metric_name)`; DataFrame — только представление результата.
-- `[ ]` **P2-6.** Публичный API в `__init__.py`: `find_portfolios`, `create_report`, `METRICS`, `PortfolioResult`, `__version__`; добавить `py.typed`.
-- `[ ]` **P2-6.** Явные исключения вместо `KeyError`/`ValueError` из pandas/numpy.
-- `[ ]` **P2-6.** Логирование через `logging.getLogger("bfportf")`; `verbose` остаётся тонким шимом над прогресс-баром/логгером.
-- `[ ]` **P2-8.** Векторизация метрик по матрице кандидатов (T x N), `np.add(..., out=...)` вместо аллокаций, кэш `cumprod` для компаундирующих метрик.
+- `[x]` **P2-6.** Разнести код по слоям согласно схеме выше; `utils.py` оставить только с конверсиями цен/return и `drawdown_pct`.
+- `[x]` **P2-6.** `Metric` как объект: `name`, `func`, `maximize`, опциональный векторный `vectorized(matrix) -> vector`; реестр `METRICS`.
+- `[x]` **P2-6.** `find_portfolios(returns, metric: str | Metric | Callable, ...)`; при `Callable` параметр `maximize` сохраняется (обратная совместимость).
+- `[x]` **P2-6.** `SearchStrategy` + `SearchConfig(max_number, tolerance, normalize, min_weight)` + `PortfolioResult(symbols, weights, value, metric_name)`; DataFrame — только представление результата.
+- `[x]` **P2-6.** Публичный API в `__init__.py`: `find_portfolios`, `create_report`, `METRICS`, `PortfolioResult`, `__version__`; добавить `py.typed`.
+- `[x]` **P2-6.** Явные исключения вместо `KeyError`/`ValueError` из pandas/numpy.
+- `[x]` **P2-6.** Логирование через `logging.getLogger("bfportf")`; `verbose` остаётся тонким шимом над прогресс-баром/логгером.
+- `[x]` **P2-8.** Векторизация метрик по матрице кандидатов (T x N), `np.add(..., out=...)` вместо аллокаций, кэш `cumprod` для компаундирующих метрик.
 - `[-]` Deprecation-шимы — **отменено (ADR-1)**: breaking changes допускаются; вместо шимов — раздел `Breaking changes` в `CHANGELOG.md` и обновление примеров/README.
-- `[ ]` **ADR-1.** Обновить `examples/*.ipynb` и `README.md` под новый API 0.2.0.
-- `[ ]` Тесты на новые слои (`test_metrics_registry.py`, `test_search_strategies.py`, `test_api.py`).
-- `[ ]` Поднять версию до `0.2.0`, добавить `CHANGELOG.md`, обновить `plan.md`, коммит в `dev`.
+- `[x]` **ADR-1.** Обновить `examples/*.ipynb` и `README.md` под новый API 0.2.0.
+- `[x]` **ADR-3.** `search/`: `GreedySearch` (дефолт), `BeamSearch(width=5)`, `ExhaustiveSearch(max_combinations=2_000_000)`; оценка числа комбинаций до запуска.
+- `[x]` **ADR-3.** `exhaustive` как эталон в тестах: на 6 бумагах (`max_number` 1-3) результат равен истинному максимуму, greedy/beam сравниваются с ним.
+- `[x]` **ADR-4.** `find_portfolios` возвращает `list[PortfolioResult]`; `results_to_frame()` для табличного вида; `maximize=None` -> направление из `Metric`.
+- `[x]` **P2-8.** Векторный fast-path: `Metric.vectorized` для компаундирующих и моментных метрик, `np.add(..., out=...)`, кэш `cumprod`; замер ускорения.
+- `[x]` Тесты на новые слои (`test_metrics_registry.py`, `test_search_strategies.py`, `test_api.py`).
+- `[x]` Поднять версию до `0.2.0`, добавить `CHANGELOG.md`, обновить `plan.md`, коммит в `dev`.
+
+#### Замечания по реализации
+
+- **Направление `max_drawdown` — `maximize=True`** (уточнение ADR-3): метрика возвращает **отрицательный** процент, поэтому лучший портфель имеет наибольшее значение. При `maximize=False` поиск выбирал бы самую глубокую просадку. Отражено в `CHANGELOG` (0.2.0).
+- Векторный путь должен учитывать стартовый капитал: `_growth` теперь добавляет ведущую строку единиц, иначе первая доходность не попадает в просадку и `max_drawdown`/`recovery_factor` расходятся со скалярной версией (нашёл тест «vectorized == scalar»).
+- `np.add(..., out=...)` не применялся: основной выигрыш дала векторизация (2.7x), экономия от буферов в пределах шума; при необходимости — отдельная задача.
+- mypy: `python_version = "3.10"`, так как mypy 2.x больше не поддерживает 3.9 как target; сам пакет по-прежнему `requires-python >= 3.9`.
+- `scipy-stubs` не добавлен (требует Python >= 3.10.1) — для `scipy.*` настроен `ignore_missing_imports`; `numpy`/`pandas`/`tqdm` покрыты стабами.
+- `bfportf.targets` и `bfportf.optimization` оставлены тонкими фасадами (re-export и вызов стратегии), чтобы импорты из примеров и внешнего кода продолжали работать, хотя ADR-1 этого не требовал.
+- Ноутбуки перегенерированы программно и очищены от output-ов (заодно закрыта часть P2-4); данные по-прежнему загружаются по HTTPS.
 
 ### Критерии приёмки этапа 2
 
@@ -328,6 +361,11 @@ src/bfportf/
 | Ноутбуки-примеры и README | обновлены под новый API и выполняются |
 | Производительность 200x1000, `max_number=3` | не медленнее 0.9 c (цель — ускорение >= 2x) |
 | `uv run pytest -q`, покрытие | зелёный, >= 80% |
+| `find_portfolios` | возвращает `list[PortfolioResult]`, лучший первым |
+| `BeamSearch(width=1)` | совпадает с `GreedySearch` |
+| `ExhaustiveSearch` на 6 бумагах | равен истинному максимуму (brute force) |
+| `uv run mypy src` | 0 ошибок |
+| Производительность 200 x 1000 | 0.6 c против 1.6 c скалярного пути (2.7x) |
 
 ---
 
@@ -392,6 +430,7 @@ tests/
 | 2026-11-04 | Решения | Зафиксированы ADR-1 (breaking changes в 0.2.0) и ADR-2 (переход на `uv`, hatch-окружения удаляются) | — | — |
 | 2026-11-04 | 0 | Блокеры закрыты: `np.isin` вместо `np.in1d`; `scipy>=1.8` + нижние границы зависимостей; `custom_formatting` через `astype(object)`; ruff-конфиг в `[tool.ruff.lint]`; переход на `ruff format` (black удалён); `requires-python>=3.9`; удалены hatch-окружения, добавлен `[dependency-groups] dev`; версия 0.1.2; смоук-тесты | `uv run pytest -q` -> 4 passed; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 10 files already formatted; сквозной сценарий `scale_return_data` -> `find_portfolios` -> `create_report(custom_formatting=...)` | b237720 |
 | 2026-11-04 | 1 | Корректность: фикс CAGR (off-by-one); политика NaN/inf в метриках; isfinite-фильтр кандидатов; параметр `tolerance`; явный `normalize` в `get_portfolio_return`; `exceptions.py` (`DataValidationError`/`UnknownSymbolError`); `validate_returns()`; согласованы `ddof`/`risk_free`; recovery factor через компаундированный PnL; `benchmark_weights`; полный набор тестов (85) | `uv run pytest -q --cov=bfportf` -> 85 passed, 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> 6 `import-untyped` (baseline) | f92620d |
+| 2026-11-04 | 2 | Архитектура 0.2.0: слои `data`/`scaling`/`portfolio`/`metrics`/`search`; реестр `METRICS`; стратегии greedy/beam/exhaustive; `list[PortfolioResult]`; публичный API + `py.typed`; векторные метрики (2.7x); mypy чистый; примеры и README обновлены; добавлен `CHANGELOG` | `uv run pytest -q --cov=bfportf` -> 124 passed, 96%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success | — |
 
 ---
 
@@ -405,15 +444,24 @@ tests/
 
 ---
 
-## Открытые вопросы (требуют решения до соответствующего этапа)
+## Открытые вопросы
 
 **Решено:**
 
 - ~~Обратная совместимость~~ -> **ADR-1**: breaking changes допускаются в 0.2.0, шимы не делаем.
 - ~~Тулчейн~~ -> **ADR-2**: полностью переходим на `uv`.
 
-**Остаются открытыми (решить до соответствующих этапов):**
-1. **Стратегии поиска** (этап 2). `exhaustive`/`beam` — только для тестов или в публичном API?
-2. **Публикация** (этап 3). Нужен ли релиз в PyPI (бейджи в README есть, публикации нет)?
-3. **Политика `inf`/`nan` (этап 1).** Предлагается: кандидат с невалидным значением исключается из выбора + `logging.warning` один раз на метрику. Подтвердить.
-4. **Семантика весов (этап 1).** Оставляем нормализацию к 1 (неявное плечо) как поведение по умолчанию ради совместимости или делаем `normalize="none"` дефолтом в 0.2.0?
+## Открытые вопросы
+
+**Решено:**
+
+- ~~Обратная совместимость~~ -> **ADR-1**: breaking changes допускаются в 0.2.0, шимы не делаем.
+- ~~Тулчейн~~ -> **ADR-2**: полностью переходим на `uv`.
+- ~~Стратегии поиска~~ -> **ADR-3**: `greedy` / `beam` / `exhaustive` — публичные классы стратегий, `greedy` по умолчанию.
+- ~~Формат результата поиска~~ -> **ADR-4**: `find_portfolios` возвращает `list[PortfolioResult]`, DataFrame — через `results_to_frame`.
+- ~~Политика `inf`/`nan`~~ -> реализовано в 0.1.3: метрики возвращают `np.nan`, кандидаты с нефинитным значением отбрасываются.
+- ~~Семантика весов~~ -> реализовано в 0.1.3: дефолт `normalize="sum"`, режим `"none"` доступен явно.
+
+**Остаётся открытым:**
+
+1. **Публикация** (этап 3). Нужен ли релиз в PyPI (бейджи в README есть, публикации нет)?

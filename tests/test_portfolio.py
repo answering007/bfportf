@@ -1,11 +1,17 @@
-"""Tests for the portfolio aggregation helpers."""
+"""Tests for portfolio aggregation helpers."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from bfportf.exceptions import DataValidationError, UnknownSymbolError
-from bfportf.utils import calculate_metric, get_portfolio_return, scale_return_data
+from bfportf.portfolio import (
+    calculate_metric,
+    get_portfolio_return,
+    normalized_weights,
+    resolve_weights,
+)
+from bfportf.scaling import scale_return_data
 
 
 def test_get_portfolio_return_equal_weights(returns: pd.DataFrame) -> None:
@@ -63,15 +69,32 @@ def test_get_portfolio_return_zero_total_weight(returns: pd.DataFrame) -> None:
         get_portfolio_return(returns, ["SYM00"], weights)
 
 
-def test_get_portfolio_return_weights_missing_column(returns: pd.DataFrame) -> None:
+def test_resolve_weights_missing_column(returns: pd.DataFrame) -> None:
     weights = pd.Series(1.0, index=returns.columns[:-1])
     with pytest.raises(UnknownSymbolError):
-        get_portfolio_return(returns, ["SYM00"], weights)
+        resolve_weights(returns, weights)
 
 
-def test_get_portfolio_return_weights_wrong_shape(returns: pd.DataFrame) -> None:
+def test_resolve_weights_wrong_shape(returns: pd.DataFrame) -> None:
     with pytest.raises(DataValidationError, match="shape"):
-        get_portfolio_return(returns, ["SYM00"], np.ones(3))
+        resolve_weights(returns, np.ones(3))
+
+
+def test_resolve_weights_defaults_to_equal_weights(returns: pd.DataFrame) -> None:
+    weights = resolve_weights(returns, None)
+    assert (weights.to_numpy() == 1.0).all()
+    assert weights.index.equals(returns.columns)
+
+
+def test_normalized_weights_sum_to_one(returns: pd.DataFrame) -> None:
+    weights = normalized_weights(returns, ["SYM00", "SYM01"], np.arange(1.0, len(returns.columns) + 1))
+    assert weights.sum() == pytest.approx(1.0)
+    assert list(weights.index) == ["SYM00", "SYM01"]
+
+
+def test_normalized_weights_zero_total(returns: pd.DataFrame) -> None:
+    with pytest.raises(DataValidationError):
+        normalized_weights(returns, ["SYM00"], pd.Series(0.0, index=returns.columns))
 
 
 def test_calculate_metric_with_array_weights(returns: pd.DataFrame) -> None:

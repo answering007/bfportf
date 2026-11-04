@@ -17,6 +17,7 @@ version bump may contain breaking changes.
   an `examples` extra resolution job.
 - `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout` and whitespace/EOF checks.
 - `examples` optional dependency group (`jupyter`, `quantstats`).
+- `pyarrow` dependency: the example data is stored as parquet.
 
 ### Changed
 
@@ -28,8 +29,9 @@ version bump may contain breaking changes.
   volatility shares are estimated in-sample only (the test set is scaled with the same shares), the custom
   metric is a `Metric` with a name and a direction, the strategies are compared on the same universe, and
   `tolerance` and the validation errors are demonstrated.
-- `examples/prices.csv` (13.9 MB) is no longer tracked in git: the notebooks use a local copy when it exists
-  and fall back to a pinned commit (`314397c`), so the data link does not depend on a branch.
+- The example data is `assets/prices.parquet` (4.5 MB, 500 symbols) instead of `examples/prices.csv` (13.9 MB):
+  the notebooks read the parquet file from `assets/` or a copy next to the notebook, download it from the
+  release asset when it is missing, and fall back to the original CSV from a pinned commit (`314397c`).
 
 ### Removed
 

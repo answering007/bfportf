@@ -132,14 +132,15 @@ See the [examples folder](https://github.com/answering007/bfportf/tree/master/ex
 - `BfPortf 03 Metrics and strategies.ipynb` — the registry, the optimization direction, `tolerance`, the
   cost of the strategies, the errors and short legs.
 
-The example data (`prices.csv`, 13.9 MB, 500 symbols) is not tracked in git. Put the file next to the
-notebooks, otherwise the notebooks download it from a pinned commit:
+The example data (`prices.parquet`, 4.5 MB, 500 symbols) is not tracked in git: it lives in `assets/` and is
+published as an asset of the latest GitHub release. The notebooks look for `assets/prices.parquet` (or a copy
+next to the notebook) and download the asset when the file is missing:
 
 ```console
-curl -L -o examples/prices.csv https://raw.githubusercontent.com/answering007/bfportf/314397c/examples/prices.csv
+curl -L -o assets/prices.parquet https://github.com/answering007/bfportf/releases/latest/download/prices.parquet
 ```
 
-Run them with the optional extra:
+Reading parquet needs `pyarrow`, which is a project dependency. Run the notebooks with the optional extra:
 
 ```console
 uv sync --extra examples

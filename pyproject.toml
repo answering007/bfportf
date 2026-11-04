@@ -26,10 +26,11 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-	"numpy>=1.22",
-	"pandas>=1.5",
-	"scipy>=1.8",
-	"tqdm>=4.64",
+  "numpy>=1.22",
+  "pandas>=1.5",
+  "pyarrow>=21.0.0",
+  "scipy>=1.8",
+  "tqdm>=4.64",
 ]
 
 [project.urls]
@@ -162,6 +163,7 @@ packages = ["src/bfportf"]
 exclude = [
   "/.github",
   "/.pre-commit-config.yaml",
+  "/assets/*.parquet",
   "/examples/*.csv",
   "/plan.md",
   "/uv.lock",

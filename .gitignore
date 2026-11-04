@@ -225,7 +225,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Example data: the notebooks download prices.csv from GitHub, the file is not stored in git
-/examples/prices.csv
+/assets/*.parquet
 
 # Example run artifacts (QuantStats reports)
 /examples/*.html

@@ -60,6 +60,11 @@ dev = [
   "types-tqdm>=4.66",
 ]
 
+[tool.pytest.ini_options]
+# Discovery stays aligned with the CLI: only tests/ is scanned, generated and data dirs are skipped
+testpaths = ["tests"]
+norecursedirs = [".git", ".venv", "dist", "examples", "assets", "__pycache__"]
+
 [tool.mypy]
 # mypy 2.x does not support Python 3.9 as a target, the package itself still supports 3.9
 python_version = "3.10"

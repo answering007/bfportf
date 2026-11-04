@@ -1,6 +1,7 @@
-""" Optimization functions """
+"""Optimization functions"""
+
 import math
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -8,13 +9,14 @@ from tqdm import tqdm
 
 
 def find_next_symbol(
-        returns: np.ndarray,
-        symbols: np.ndarray,
-        weights: np.ndarray,
-        initial_returns: np.ndarray,
-        initial_weight: np.float64,
-        target_function: Callable[[np.ndarray], np.float64],
-        maximize: bool = True) -> Union[Tuple[np.ndarray, np.float64], None]:
+    returns: np.ndarray,
+    symbols: np.ndarray,
+    weights: np.ndarray,
+    initial_returns: np.ndarray,
+    initial_weight: np.float64,
+    target_function: Callable[[np.ndarray], np.float64],
+    maximize: bool = True,
+) -> Union[tuple[np.ndarray, np.float64], None]:
     """Find best target function value for specified initial return
 
     Args:
@@ -55,14 +57,16 @@ def find_next_symbol(
 
     return (candidate_symbol, candidate_value) if not is_equal else None
 
+
 def find_portfolio_for_symbol(
-        returns: np.ndarray,
-        symbols: np.ndarray,
-        weights: np.ndarray,
-        target_symbol: str,
-        target_function: Callable[[np.ndarray], np.float64],
-        maximize: bool = True,
-        max_number: Optional[int] = None) -> Tuple[np.ndarray, np.float64]:
+    returns: np.ndarray,
+    symbols: np.ndarray,
+    weights: np.ndarray,
+    target_symbol: str,
+    target_function: Callable[[np.ndarray], np.float64],
+    maximize: bool = True,
+    max_number: Optional[int] = None,
+) -> tuple[np.ndarray, np.float64]:
     """Find portfolio for specified symbol
 
     Args:
@@ -80,7 +84,7 @@ def find_portfolio_for_symbol(
 
     # Init portfolio data
     portfolio_symbols = np.array([target_symbol])
-    portfolio_symbols_filter = np.in1d(symbols, portfolio_symbols)
+    portfolio_symbols_filter = np.isin(symbols, portfolio_symbols)
     portfolio_returns = returns[:, portfolio_symbols_filter]
     portfolio_weights = weights[portfolio_symbols_filter]
     target_function_value = target_function(portfolio_returns.flatten() / portfolio_weights)
@@ -104,7 +108,7 @@ def find_portfolio_for_symbol(
             initial_returns=initial_returns,
             initial_weight=initial_weight,
             target_function=target_function,
-            maximize=maximize
+            maximize=maximize,
         )
 
         if find_result is not None:
@@ -112,12 +116,12 @@ def find_portfolio_for_symbol(
             # Add data to portfolio
             found_symbol = np.array([found_symbol])
             portfolio_symbols = np.concatenate([portfolio_symbols, found_symbol], axis=0)
-            portfolio_symbols_filter = np.in1d(symbols, portfolio_symbols)
+            portfolio_symbols_filter = np.isin(symbols, portfolio_symbols)
             portfolio_symbols = symbols[portfolio_symbols_filter]
             portfolio_returns = returns[:, portfolio_symbols_filter]
             portfolio_weights = weights[portfolio_symbols_filter]
             # Remove from candidates data
-            candidate_symbols_filter = ~np.in1d(symbols, portfolio_symbols)
+            candidate_symbols_filter = ~np.isin(symbols, portfolio_symbols)
             candidate_symbols = symbols[candidate_symbols_filter]
             candidate_returns = returns[:, candidate_symbols_filter]
             candidate_weights = weights[candidate_symbols_filter]
@@ -127,14 +131,16 @@ def find_portfolio_for_symbol(
             break
     return portfolio_symbols, target_function_value
 
+
 def find_portfolios(
-        returns: pd.DataFrame,
-        target_function: Callable[[np.ndarray], np.float64],
-        maximize: bool = True,
-        target_symbols: Optional[List[str]] = None,
-        custom_weights: pd.Series = None,
-        max_number: Optional[int] = None,
-        verbose: bool = True) -> pd.DataFrame:
+    returns: pd.DataFrame,
+    target_function: Callable[[np.ndarray], np.float64],
+    maximize: bool = True,
+    target_symbols: Optional[list[str]] = None,
+    custom_weights: pd.Series = None,
+    max_number: Optional[int] = None,
+    verbose: bool = True,
+) -> pd.DataFrame:
     """Find best portfolio for specified target function
 
     Args:
@@ -173,13 +179,13 @@ def find_portfolios(
             target_symbol=symbol,
             target_function=target_function,
             maximize=maximize,
-            max_number=max_number
+            max_number=max_number,
         )
         results.append(portfolio)
 
     results = pd.DataFrame(results, columns=["symbols", "target_function_value"])
     results["Portfolio"] = results["symbols"].apply(";".join)
     results = results.groupby(by="Portfolio").first()
-    results = results.sort_values(by="target_function_value", ascending= not maximize)
-    results.reset_index(inplace=True, drop=True)
+    results = results.sort_values(by="target_function_value", ascending=not maximize)
+    results = results.reset_index(drop=True)
     return results

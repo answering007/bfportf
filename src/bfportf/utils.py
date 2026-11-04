@@ -1,13 +1,12 @@
 """Common utilities"""
-from typing import Callable, List, Optional, Tuple
+
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
 
 
-def return_to_price(
-        returns: np.ndarray,
-        first_value: np.ndarray = None) -> np.ndarray:
+def return_to_price(returns: np.ndarray, first_value: np.ndarray = None) -> np.ndarray:
     """Convert return array to price array
 
     Args:
@@ -34,9 +33,8 @@ def price_to_return(prices: np.ndarray) -> np.ndarray:
 
 
 def scale_return_data(
-        df_return: pd.DataFrame,
-        target_return: Optional[float] = None,
-        target_symbol: Optional[str] = None) -> Tuple[pd.DataFrame, pd.Series]:
+    df_return: pd.DataFrame, target_return: Optional[float] = None, target_symbol: Optional[str] = None
+) -> tuple[pd.DataFrame, pd.Series]:
     """Scale return (pct_change) data to equal average abs return
 
     Args:
@@ -63,9 +61,8 @@ def scale_return_data(
 
 
 def add_inverted_return(
-        returns: pd.DataFrame,
-        inverted_symbols: List[str],
-        postfix: str = "-1") -> Tuple[pd.DataFrame, List[str]]:
+    returns: pd.DataFrame, inverted_symbols: list[str], postfix: str = "-1"
+) -> tuple[pd.DataFrame, list[str]]:
     """Add inverted return columns to the dataframe
 
     Args:
@@ -78,7 +75,7 @@ def add_inverted_return(
         and list of inverted column names
     """
     inverted_names = [x + postfix for x in inverted_symbols]
-    inverted = pd.DataFrame(data=returns[inverted_symbols])*-1
+    inverted = pd.DataFrame(data=returns[inverted_symbols]) * -1
     inverted.columns = inverted_names
     return pd.concat([returns, inverted], axis=1), inverted_names
 
@@ -97,9 +94,8 @@ def drawdown_pct(prices: np.ndarray) -> np.ndarray:
 
 
 def get_portfolio_return(
-        returns: pd.DataFrame,
-        portfolio_symbols: List[str],
-        return_weights: pd.Series = None) -> pd.Series:
+    returns: pd.DataFrame, portfolio_symbols: list[str], return_weights: pd.Series = None
+) -> pd.Series:
     """Calculate portfolio return series
 
     Args:
@@ -111,16 +107,13 @@ def get_portfolio_return(
         pd.Series: Portfolio return series
     """
     if return_weights is None:
-        return_weights = pd.Series(
-            [1] * len(returns.columns), index=returns.columns)
+        return_weights = pd.Series([1] * len(returns.columns), index=returns.columns)
     return returns[portfolio_symbols].sum(axis=1) / return_weights[portfolio_symbols].sum()
 
 
 def calculate_metric(
-        results: pd.DataFrame,
-        returns: pd.DataFrame,
-        return_weights: pd.Series,
-        func: Callable[[np.ndarray], np.float64]) -> pd.Series:
+    results: pd.DataFrame, returns: pd.DataFrame, return_weights: pd.Series, func: Callable[[np.ndarray], np.float64]
+) -> pd.Series:
     """Calculate metric for each portfolio symbols
 
     Args:
@@ -132,13 +125,11 @@ def calculate_metric(
     Returns:
         pd.Series: Series of metric values
     """
+
     def apply_function(
-            returns: pd.DataFrame,
-            weights: pd.Series,
-            symbols: List[str],
-            func: Callable[[np.ndarray], np.float64]) -> np.float64:
-        portfolio_series = get_portfolio_return(
-            returns=returns, portfolio_symbols=symbols, return_weights=weights)
+        returns: pd.DataFrame, weights: pd.Series, symbols: list[str], func: Callable[[np.ndarray], np.float64]
+    ) -> np.float64:
+        portfolio_series = get_portfolio_return(returns=returns, portfolio_symbols=symbols, return_weights=weights)
         return func(portfolio_series.values)
 
     return results["symbols"].apply(lambda symbols_list: apply_function(returns, return_weights, symbols_list, func))

@@ -1,4 +1,5 @@
 """Collection of target functions"""
+
 import numpy as np
 from scipy.stats import kurtosis, pearsonr, skew
 
@@ -14,7 +15,7 @@ def pnl_target(returns: np.ndarray) -> np.float64:
     Returns:
         np.float64: PnL value
     """
-    return return_to_price(returns)[-1]-1
+    return return_to_price(returns)[-1] - 1
 
 
 def max_drawdown_target(returns: np.ndarray) -> np.float64:
@@ -106,10 +107,7 @@ def kurtosis_target(returns: np.ndarray) -> np.float64:
     return kurtosis(returns)
 
 
-def autocorrelation_target(
-        returns: np.ndarray,
-        absolute: bool = True,
-        periods: int = 1) -> np.float64:
+def autocorrelation_target(returns: np.ndarray, absolute: bool = True, periods: int = 1) -> np.float64:
     """Autocorrelation target function
 
     Args:

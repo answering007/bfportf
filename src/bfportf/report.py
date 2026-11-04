@@ -1,6 +1,7 @@
-"""Report functions"""
+"""Report functions."""
 
-from typing import Callable, Optional
+from collections.abc import Mapping, Sequence
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -16,68 +17,86 @@ from bfportf.targets import (
     skew_target,
     sortino_target,
 )
-from bfportf.utils import get_portfolio_return
+from bfportf.utils import WeightLike, get_portfolio_return
+
+
+def _to_array(series: Union[pd.Series, np.ndarray]) -> np.ndarray:
+    """Convert a portfolio series into a 1d numpy array of returns."""
+    if isinstance(series, pd.Series):
+        return series.to_numpy()
+    return np.asarray(series, dtype=float)
 
 
 def create_report(
     returns: pd.DataFrame,
-    portfolio_symbols: list[str],
-    return_weights: pd.Series = None,
-    benchmark_symbols: Optional[list[str]] = None,
-    custom_benchmark: pd.Series = None,
-    custom_portfolio_metrics: Optional[dict[str, Callable[[np.ndarray], np.float64]]] = None,
-    custom_formatting: Optional[dict[str, str]] = None,
+    portfolio_symbols: Sequence[str],
+    return_weights: WeightLike = None,
+    benchmark_symbols: Optional[Sequence[str]] = None,
+    custom_benchmark: Optional[pd.Series] = None,
+    custom_portfolio_metrics: Optional[Mapping[str, Callable[[np.ndarray], float]]] = None,
+    custom_formatting: Optional[Mapping[str, str]] = None,
+    benchmark_weights: WeightLike = None,
 ) -> pd.DataFrame:
-    """Create report
+    """Create the performance report.
 
     Args:
-        returns (pd.DataFrame): Dataframe with returns
-        portfolio_symbols (List[str]): Portfolio symbols
-        return_weights (pd.Series, optional): Symbols weights. Defaults to None. If None, equal weights will be used.
-        benchmark_symbols (List[str], optional): Symbols to use as a benchmark portfolio. Defaults to None.
-        custom_benchmark (pd.Series, optional): Custom benchmark series. Defaults to None. Ignored if benchmark_symbols is not None.
-        custom_portfolio_metrics (Dict[str, Callable[[np.ndarray], np.float64]], optional): Custom portfolio metrics to add. Defaults to None.
-        custom_formatting (Dict[str, str], optional): Custom formatting [metric_name, format]. Defaults to None.
+        returns (pd.DataFrame): Dataframe with returns.
+        portfolio_symbols (Sequence[str]): Portfolio symbols.
+        return_weights (WeightLike, optional): Symbols weights. Defaults to None (equal weights).
+        benchmark_symbols (Sequence[str], optional): Symbols to use as a benchmark portfolio.
+            Defaults to None.
+        custom_benchmark (pd.Series, optional): Custom benchmark series. Defaults to None and is
+            ignored if ``benchmark_symbols`` is not None.
+        custom_portfolio_metrics (Mapping[str, Callable[[np.ndarray], float]], optional): Custom
+            metrics to add. Every metric receives the 1d numpy array of the portfolio (or
+            benchmark) returns, exactly like the built in metrics. Defaults to None.
+        custom_formatting (Mapping[str, str], optional): Custom formatting as
+            ``{metric_name: format_string}``. Defaults to None.
+        benchmark_weights (WeightLike, optional): Weights used for the benchmark portfolio.
+            Defaults to None, which means ``return_weights`` is reused (0.1.x behaviour).
 
     Returns:
-        pd.DataFrame: Report dataframe
-    """  # noqa: E501
-    # Portfolio metrics
-    portfolio_metrics = {
-        "PnL": lambda x: pnl_target(x.values),
-        "CAGR": lambda x: cagr_target(x.values),
-        "Max drawdown": lambda x: max_drawdown_target(x.values),
-        "Profit factor": lambda x: profit_factor_target(x.values),
-        "Recovery factor": lambda x: recovery_factor_target(x.values),
-        "Sharpe ratio": lambda x: sharpe_target(x.values),
-        "Sortino ratio": lambda x: sortino_target(x.values),
-        "Skew": lambda x: skew_target(x.values),
-        "Kurtosis": lambda x: kurtosis_target(x.values),
+        pd.DataFrame: Report dataframe with the ``Portfolio``, optional ``Benchmark`` and
+        ``Diff`` columns.
+
+    Notes:
+        With ``benchmark_weights=None`` a single symbol benchmark is rescaled back to its raw
+        returns by ``normalize="sum"`` (see :func:`bfportf.utils.get_portfolio_return`). Pass
+        ``benchmark_weights`` explicitly to evaluate the benchmark with its own weights.
+    """
+    portfolio_metrics: dict = {
+        "PnL": pnl_target,
+        "CAGR": cagr_target,
+        "Max drawdown": max_drawdown_target,
+        "Profit factor": profit_factor_target,
+        "Recovery factor": recovery_factor_target,
+        "Sharpe ratio": sharpe_target,
+        "Sortino ratio": sortino_target,
+        "Skew": skew_target,
+        "Kurtosis": kurtosis_target,
     }
     if custom_portfolio_metrics is not None:
         portfolio_metrics.update(custom_portfolio_metrics)
 
-    # Portfolio return
-    portfolio_series = get_portfolio_return(returns, portfolio_symbols, return_weights)
-    report_data = pd.DataFrame(data={"Portfolio": portfolio_series})
-
-    # Benchmark return
+    columns: dict = {
+        "Portfolio": get_portfolio_return(returns, portfolio_symbols, return_weights),
+    }
     if benchmark_symbols is not None:
-        benchmark_series = get_portfolio_return(returns, benchmark_symbols, return_weights)
-        report_data["Benchmark"] = benchmark_series
+        weights = return_weights if benchmark_weights is None else benchmark_weights
+        columns["Benchmark"] = get_portfolio_return(returns, benchmark_symbols, weights)
     elif custom_benchmark is not None:
-        report_data["Benchmark"] = custom_benchmark
+        columns["Benchmark"] = custom_benchmark
 
-    # Compute portfolio metrics
-    agg_parameters = [pair[1] for pair in portfolio_metrics.items()]
-    report_data = report_data.agg(agg_parameters, axis=0)
-    report_data.index = [pair[0] for pair in portfolio_metrics.items()]
+    report_data = pd.DataFrame(
+        {
+            column: {name: func(_to_array(series)) for name, func in portfolio_metrics.items()}
+            for column, series in columns.items()
+        },
+    )
 
-    # Add difference
     if "Benchmark" in report_data.columns:
         report_data["Diff"] = report_data["Portfolio"] - report_data["Benchmark"]
 
-    # Custom formatting
     if custom_formatting is not None:
         report_data = report_data.astype(object)
         for metric_name, formatting in custom_formatting.items():

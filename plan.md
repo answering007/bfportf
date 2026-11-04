@@ -2,7 +2,7 @@
 
 > Рабочая ветка: **dev**
 > Базовый коммит: `314397c` ("set train_weights to out-of-sample results")
-> Текущая версия пакета: `0.1.1` (`src/bfportf/__about__.py`)
+> Текущая версия пакета: `0.1.3` (`src/bfportf/__about__.py`)
 > Документ ведётся итеративно: после каждого завершённого шага обновляются разделы «Статус» и «Журнал изменений».
 
 ## Легенда статусов
@@ -44,11 +44,11 @@
 | Аудит | Ревизия кода, воспроизведение дефектов на живом окружении | `[x]` |
 | Решения | Зафиксированы ADR-1 (breaking changes в 0.2.0) и ADR-2 (единый тулчейн — `uv`) | `[x]` |
 | 0 | Блокеры P0: работоспособность на актуальных numpy/pandas/scipy, чистый линт | `[x]` (0.1.2) |
-| 1 | Корректность расчётов: CAGR, NaN/inf, tolerance, семантика весов, валидация | `[ ]` |
+| 1 | Корректность расчётов: CAGR, NaN/inf, tolerance, семантика весов, валидация | `[x]` (0.1.3) |
 | 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[ ]` |
 | 3 | Упаковка, CI, документация, данные примеров | `[ ]` |
 
-**Готовность к использованию:** после этапа 0 (0.1.2) пакет устанавливается и работает: `import bfportf.targets` проходит, `find_portfolios` / `create_report` выполняются на numpy 2.5 / pandas 3.1 / scipy 1.18. Дефекты P1 (расчёты) и P2 (архитектура, CI) пока не закрыты.
+**Готовность к использованию:** после этапа 1 (0.1.3) дефекты P0 и P1 закрыты: 85 тестов, покрытие `src/bfportf` — 95%, вырожденные данные больше не дают `inf`/`nan`, ошибки данных и символов — типизированные исключения. Остаются задачи P2 (архитектура, CI, упаковка).
 
 ---
 
@@ -74,6 +74,23 @@
 - `[x]` `uv lock` + `uv sync --group dev`; `uv.lock` актуализирован.
 
 Проверки этапа 0: `uv run pytest -q` -> 4 passed; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 10 files already formatted.
+
+### Этап 1 (0.1.3) — выполнено
+
+- `[x]` **P1-1.** CAGR: `periods = len(returns) / days_per_year` (проверено: 1%/день x 252 -> 11.274%).
+- `[x]` **P1-2.** Политика `NaN`/`inf`: метрики возвращают `np.nan` вместо `inf`; `np.isfinite`-фильтр кандидатов в `find_next_symbol`; добавлен `validate_returns()` (NaN, inf, дубли колонок/индекса, немонотонный индекс; константные колонки -> warning).
+- `[x]` **P1-3.** Параметр `tolerance` в `find_portfolios` / `find_portfolio_for_symbol` / `find_next_symbol`.
+- `[x]` **P1-4.** `get_portfolio_return(..., normalize="sum"|"none")`, семантика весов документирована (доли аллокации, нормализация к 1 = неявное плечо).
+- `[x]` **P1-5.** Валидация символов и весов -> `UnknownSymbolError` / `DataValidationError` (новый модуль `exceptions.py`).
+- `[x]` **P1-6.** Единый контракт метрик: все получают `np.ndarray`; отчёт собирается без `agg`-хака.
+- `[x]` **P1-7.** Согласованы `ddof=1`, добавлен `risk_free`; `recovery_factor = pnl_target / |max_drawdown|`.
+- `[x]` **P1-8.** `calculate_metric` переиспользует `get_portfolio_return`, принимает `Series` / `ndarray` / `None`.
+- `[x]` **P1-9.** Docstring и аннотации приведены в соответствие с фактическим поведением.
+- `[x]` **P1-10.** `groupby(..., dropna=False)`; `NaN`-значения уходят в конец сортировки.
+- `[x]` **P1-11.** Параметр `benchmark_weights` в `create_report` (дефолт сохраняет поведение 0.1.x).
+- `[x]` Тесты: `conftest.py`, `test_utils.py`, `test_utils_portfolio.py`, `test_targets.py`, `test_optimization.py`, `test_report.py`, `pytest-cov` в dev-группе.
+
+Проверки этапа 1: `uv run pytest -q --cov=bfportf` -> 85 passed, покрытие 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> те же 6 `import-untyped` (baseline этапа 0, новых нет).
 
 ---
 
@@ -105,11 +122,11 @@
 | `.github` | отсутствует |
 | `uv` | 0.12.13 (`C:/Users/Pavel/.local/bin/uv.exe`); локальный `.venv` создан `uv` |
 | `hatch` | в PATH отсутствует (не установлен) — учтено в ADR-2 |
-| `tests/` | `tests/test_smoke.py` — 4 смоук-теста (этап 0); остального покрытия нет |
+| `tests/` | 85 тестов (этап 1), покрытие `src/bfportf` — 95% |
 | `examples/prices.csv` | 14.5 МБ, в индексе git |
 | ruff | 0.17.3 (`uv run ruff`) — линт и `ruff format` |
-| pytest | 9.2.0; `uv run pytest -q` -> 4 passed |
-| mypy | 2.4.1 — baseline: 6 ошибок, все `import-untyped` (нет стабов numpy/pandas/tqdm/scipy) |
+| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 85 passed, 95% |
+| mypy | 2.4.1 — 6 ошибок `import-untyped` (baseline этапа 0, после этапа 1 новых нет) |
 
 Команды воспроизведения исходных дефектов (до этапа 0):
 
@@ -147,17 +164,17 @@ python -c "import numpy as np; print(hasattr(np, 'in1d'))"           # False
 
 | ID | Файл:строка | Дефект | Статус |
 |---|---|---|---|
-| P1-1 | `targets.py:139-140` | Off-by-one в CAGR: `len(prices)` включает синтетическую точку `t0`, поэтому `periods` завышен. Замер: 11.153% вместо 11.274% для 1%/день x 252 | `[ ]` |
-| P1-2 | `targets.py:42,54,80-81,124`; `optimization.py:46-56` | Нет защиты от вырожденных данных: `profit_factor`/`sortino`/`recovery_factor` дают `inf`, `skew`/`kurtosis`/`pearsonr` на константе — `nan`. В `find_next_symbol` `np.argmax` на массиве `nan` выбирает индекс 0 (случайный кандидат) | `[ ]` |
-| P1-3 | `optimization.py:54` | `math.isclose` с `rel_tol=1e-9` как критерий остановки: для больших значений улучшение игнорируется, для малых — шум считается улучшением | `[ ]` |
-| P1-4 | `utils.py:113-116` | Неявная нормализация: `get_portfolio_return` всегда делит на `sum(weights)` (портфель принудительно 1x). Для одного символа деление полностью отменяет `scale_return_data`; веса влияют только на пропорции. Требуется явный параметр `normalize` и документирование | `[ ]` |
-| P1-5 | `utils.py:113-115` | Дефолтные веса строятся по всем колонкам `returns`, не по `portfolio_symbols`; нет валидации — пользователь получает «сырой» `KeyError` от pandas | `[ ]` |
-| P1-6 | `report.py:27,44-52` | Несогласованный контракт кастомных метрик: встроенные получают `pd.Series`, документация обещает `np.ndarray` | `[ ]` |
-| P1-7 | `targets.py:57-82,45-54` | Несогласованность метрик: `sharpe` — `ddof=1`, `sortino` — `ddof=0`; `recovery_factor` смешивает арифметическую сумму return-ов и геометрическую просадку; нет risk-free ставки | `[ ]` |
-| P1-8 | `utils.py:119-144` | `calculate_metric` дублирует `get_portfolio_return`, типизирован под `pd.Series` (ndarray ломается), используется только в примере 02 | `[ ]` |
-| P1-9 | `utils.py:14`; `optimization.py:17,29-30`; `report.py:38`; `targets.py:57,70` | Расхождения docstring/типов (имена параметров, порядок элементов в кортеже, `periods: int` при проверке `is None`) | `[ ]` |
-| P1-10 | `optimization.py:180-184` | `groupby(...).first()` в старых pandas пропускает NaN-строки; `symbols` хранится ndarray в object-колонке — неудобный контракт | `[ ]` |
-| P1-11 | `report.py:62-65` | Бенчмарк считается с весами портфеля (работает «случайно» — разматывает бенчмарк в сырые доходности); поведение не документировано | `[ ]` |
+| P1-1 | `targets.py:139-140` | Off-by-one в CAGR: `len(prices)` включает синтетическую точку `t0`, поэтому `periods` завышен. Замер: 11.153% вместо 11.274% для 1%/день x 252 | `[x]` |
+| P1-2 | `targets.py:42,54,80-81,124`; `optimization.py:46-56` | Нет защиты от вырожденных данных: `profit_factor`/`sortino`/`recovery_factor` дают `inf`, `skew`/`kurtosis`/`pearsonr` на константе — `nan`. В `find_next_symbol` `np.argmax` на массиве `nan` выбирает индекс 0 (случайный кандидат) | `[x]` |
+| P1-3 | `optimization.py:54` | `math.isclose` с `rel_tol=1e-9` как критерий остановки: для больших значений улучшение игнорируется, для малых — шум считается улучшением | `[x]` |
+| P1-4 | `utils.py:113-116` | Неявная нормализация: `get_portfolio_return` всегда делит на `sum(weights)` (портфель принудительно 1x). Для одного символа деление полностью отменяет `scale_return_data`; веса влияют только на пропорции. Требуется явный параметр `normalize` и документирование | `[x]` |
+| P1-5 | `utils.py:113-115` | Дефолтные веса строятся по всем колонкам `returns`, не по `portfolio_symbols`; нет валидации — пользователь получает «сырой» `KeyError` от pandas | `[x]` |
+| P1-6 | `report.py:27,44-52` | Несогласованный контракт кастомных метрик: встроенные получают `pd.Series`, документация обещает `np.ndarray` | `[x]` |
+| P1-7 | `targets.py:57-82,45-54` | Несогласованность метрик: `sharpe` — `ddof=1`, `sortino` — `ddof=0`; `recovery_factor` смешивает арифметическую сумму return-ов и геометрическую просадку; нет risk-free ставки | `[x]` |
+| P1-8 | `utils.py:119-144` | `calculate_metric` дублирует `get_portfolio_return`, типизирован под `pd.Series` (ndarray ломается), используется только в примере 02 | `[x]` |
+| P1-9 | `utils.py:14`; `optimization.py:17,29-30`; `report.py:38`; `targets.py:57,70` | Расхождения docstring/типов (имена параметров, порядок элементов в кортеже, `periods: int` при проверке `is None`) | `[x]` |
+| P1-10 | `optimization.py:180-184` | `groupby(...).first()` в старых pandas пропускает NaN-строки; `symbols` хранится ndarray в object-колонке — неудобный контракт | `[x]` |
+| P1-11 | `report.py:62-65` | Бенчмарк считается с весами портфеля (работает «случайно» — разматывает бенчмарк в сырые доходности); поведение не документировано | `[x]` |
 | P1-12 | `optimization.py:186` | `reset_index(inplace=True)` даёт `Pandas4Warning` на pandas 3.1 (inplace удаляется в pandas 4). **Исправлено в этапе 0** | `[x]` |
 
 ### P2 — архитектура, инфраструктура, документация
@@ -222,23 +239,33 @@ python -c "import numpy as np; print(hasattr(np, 'in1d'))"           # False
 
 ### Чек-лист
 
-- `[ ]` **P1-1.** CAGR: `periods = len(returns) / days_per_year`; тест «константа r на n периодах → (1+r)^n - 1».
-- `[ ]` **P1-2.** Политика NaN/inf:
+- `[x]` **P1-1.** CAGR: `periods = len(returns) / days_per_year`; тест «константа r на n периодах → (1+r)^n - 1».
+- `[x]` **P1-2.** Политика NaN/inf:
   - в `targets.py` — определённое поведение для деления на ноль (`profit_factor`, `sortino`, `recovery_factor`) и для константного ряда (`skew`, `kurtosis`, `autocorrelation`), `np.errstate`;
   - в `find_next_symbol` — маска `np.isfinite`, кандидаты с невалидным значением исключаются из выбора;
   - `validate_returns()` — проверка NaN/inf, нулевой дисперсии, дублей и немонотонного индекса.
-- `[ ]` **P1-3.** Параметр `tolerance` (abs/rel) вместо `math.isclose` по умолчанию; явная семантика остановки.
-- `[ ]` **P1-4.** `get_portfolio_return(..., normalize="sum"|"none")`; в docstring — что веса задают доли аллокации и нормализуются к 1 (неявное плечо), и что для одного символа нормализация отменяет `scale_return_data`.
-- `[ ]` **P1-5.** Валидация `portfolio_symbols`/весов → `UnknownSymbolError` с понятным сообщением вместо `KeyError`.
-- `[ ]` **P1-6.** Единый контракт кастомных метрик: `Callable[[np.ndarray], float]` (встроенные и пользовательские одинаково); поправить типы в `report.py`.
-- `[ ]` **P1-7.** Согласовать метрики: единый `ddof`, параметр `risk_free`, `recovery_factor` считать в одних единицах (числитель — `pnl_target`).
-- `[ ]` **P1-8.** `calculate_metric`: переиспользовать `get_portfolio_return`, принимать `pd.Series | np.ndarray`, либо помечать `deprecated` в пользу нового API (решение зафиксировать в журнале).
-- `[ ]` **P1-9.** Привести docstring/аннотации в соответствие с фактическим поведением (пп. из реестра).
-- `[ ]` **P1-10.** `groupby(..., dropna=False)` в `find_portfolios`; решить, как отдавать `symbols` (tuple vs ndarray).
-- `[ ]` **P1-11.** `create_report`: бенчмарк считается с собственными весами (или параметр `benchmark_weights`), поведение документировано.
-- `[ ]` Тесты этапа 1 (см. «Тестовый набор»): `test_targets.py`, `test_utils.py`, `test_report.py`, `test_optimization.py`.
-- `[ ]` Добавить `pytest-cov` в `[dependency-groups] dev` (нужен для `uv run pytest --cov` в критериях приёмки).
-- `[ ]` Поднять версию до `0.1.3`, обновить `plan.md`, коммит в `dev`.
+- `[x]` **P1-3.** Параметр `tolerance` (abs/rel) вместо `math.isclose` по умолчанию; явная семантика остановки.
+- `[x]` **P1-4.** `get_portfolio_return(..., normalize="sum"|"none")`; в docstring — что веса задают доли аллокации и нормализуются к 1 (неявное плечо), и что для одного символа нормализация отменяет `scale_return_data`.
+- `[x]` **P1-5.** Валидация `portfolio_symbols`/весов → `UnknownSymbolError` с понятным сообщением вместо `KeyError`.
+- `[x]` **P1-6.** Единый контракт кастомных метрик: `Callable[[np.ndarray], float]` (встроенные и пользовательские одинаково); поправить типы в `report.py`.
+- `[x]` **P1-7.** Согласовать метрики: единый `ddof`, параметр `risk_free`, `recovery_factor` считать в одних единицах (числитель — `pnl_target`).
+- `[x]` **P1-8.** `calculate_metric`: переиспользовать `get_portfolio_return`, принимать `pd.Series | np.ndarray`, либо помечать `deprecated` в пользу нового API (решение зафиксировать в журнале).
+- `[x]` **P1-9.** Привести docstring/аннотации в соответствие с фактическим поведением (пп. из реестра).
+- `[x]` **P1-10.** `groupby(..., dropna=False)` в `find_portfolios`; решить, как отдавать `symbols` (tuple vs ndarray).
+- `[x]` **P1-11.** `create_report`: бенчмарк считается с собственными весами (или параметр `benchmark_weights`), поведение документировано.
+- `[x]` Тесты этапа 1 (см. «Тестовый набор»): `test_targets.py`, `test_utils.py`, `test_report.py`, `test_optimization.py`.
+- `[x]` Добавить `pytest-cov` в `[dependency-groups] dev` (нужен для `uv run pytest --cov` в критериях приёмки).
+- `[x]` Поднять версию до `0.1.3`, обновить `plan.md`, коммит в `dev`.
+
+#### Замечания по реализации
+
+- **Решение по политике `inf`/`nan`** (был открытый вопрос): неопределённые значения метрик теперь `np.nan`; кандидаты с нефинитным значением исключаются из выбора в `find_next_symbol`; строки с `nan` в результате уходят в конец сортировки (`na_position="last"`).
+- **Решение по `normalize`** (был открытый вопрос): дефолт `"sum"` сохранён ради совместимости 0.1.x (ADR-1), режим `"none"` доступен явно.
+- **P1-10:** `symbols` в результате остаются `np.ndarray` (совместимость с примерами и `calculate_metric`); переход на `tuple` / `PortfolioResult` — этап 2.
+- **Изменения значений метрик** (осознанно, зафиксировать в `CHANGELOG` на этапе 3): `sortino_target` использует `ddof=1` (было 0), `recovery_factor_target` считает компаундированный PnL в числителе (было арифметическая сумма). `pnl_target`, `max_drawdown_target`, `sharpe_target` значения не изменили.
+- Константные и почти константные ряды определяются с относительным допуском `1e-12`: иначе `np.std(np.full(n, 0.01))` даёт около `1e-18` и Sharpe «взрывается» до `1e16`.
+- `find_portfolios(validate=True)` по умолчанию проверяет входные данные; для потоковых/шумных данных можно передать `validate=False`.
+- `pytest-cov` добавлен в dev-группу; покрытие снимается `uv run pytest --cov=bfportf` (конфиг `[tool.coverage.*]` не менялся, `branch = true`).
 
 ### Критерии приёмки этапа 1
 
@@ -364,6 +391,7 @@ tests/
 | 2026-11-04 | Аудит | Проведён анализ кода и окружения, дефекты воспроизведены, создан `plan.md` | `python -c "import bfportf.targets"` -> ModuleNotFoundError (scipy); `hasattr(np, "in1d")` -> False; `create_report(custom_formatting=...)` -> TypeError | — |
 | 2026-11-04 | Решения | Зафиксированы ADR-1 (breaking changes в 0.2.0) и ADR-2 (переход на `uv`, hatch-окружения удаляются) | — | — |
 | 2026-11-04 | 0 | Блокеры закрыты: `np.isin` вместо `np.in1d`; `scipy>=1.8` + нижние границы зависимостей; `custom_formatting` через `astype(object)`; ruff-конфиг в `[tool.ruff.lint]`; переход на `ruff format` (black удалён); `requires-python>=3.9`; удалены hatch-окружения, добавлен `[dependency-groups] dev`; версия 0.1.2; смоук-тесты | `uv run pytest -q` -> 4 passed; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 10 files already formatted; сквозной сценарий `scale_return_data` -> `find_portfolios` -> `create_report(custom_formatting=...)` | — |
+| 2026-11-04 | 1 | Корректность: фикс CAGR (off-by-one); политика NaN/inf в метриках; isfinite-фильтр кандидатов; параметр `tolerance`; явный `normalize` в `get_portfolio_return`; `exceptions.py` (`DataValidationError`/`UnknownSymbolError`); `validate_returns()`; согласованы `ddof`/`risk_free`; recovery factor через компаундированный PnL; `benchmark_weights`; полный набор тестов (85) | `uv run pytest -q --cov=bfportf` -> 85 passed, 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> 6 `import-untyped` (baseline) | — |
 
 ---
 

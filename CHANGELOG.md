@@ -10,11 +10,13 @@ version bump may contain breaking changes.
 
 ### Added
 
+- `BfPortf 03 Metrics and strategies.ipynb`: the metric registry, the optimization direction, `tolerance`,
+  the cost of the three strategies, the validation errors and short legs.
 - CI workflow (`.github/workflows/ci.yml`): `ruff`, `ruff format`, `mypy` and `pytest` on Python
   3.10-3.13 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
   an `examples` extra resolution job.
 - `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout` and whitespace/EOF checks.
-- `examples` optional dependency group (`scikit-learn`, `quantstats`, `jupyter`).
+- `examples` optional dependency group (`jupyter`, `quantstats`).
 
 ### Changed
 
@@ -22,7 +24,16 @@ version bump may contain breaking changes.
   `plan.md`), the PyPI badges were removed from the README.
 - Package metadata: PEP 639 `license-files`, real project URLs, author, keywords,
   `hatchling>=1.27`.
-- `examples/prices.csv` (14.5 MB) is no longer tracked in git; the notebooks download it by URL.
+- Examples are ported to the 0.2 API: a plain time series slice instead of `train_test_split`, the inverse
+  volatility shares are estimated in-sample only (the test set is scaled with the same shares), the custom
+  metric is a `Metric` with a name and a direction, the strategies are compared on the same universe, and
+  `tolerance` and the validation errors are demonstrated.
+- `examples/prices.csv` (13.9 MB) is no longer tracked in git: the notebooks use a local copy when it exists
+  and fall back to a pinned commit (`314397c`), so the data link does not depend on a branch.
+
+### Removed
+
+- `scikit-learn` from the `examples` extra: the notebooks split the time series with a slice.
 
 ## [0.2.0] - 2026-11-04
 

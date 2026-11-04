@@ -27,8 +27,8 @@ the [releases page](https://github.com/answering007/bfportf/releases) and instal
 pip install "path/to/bfportf-0.2.0-py3-none-any.whl"
 ```
 
-The examples additionally need `scikit-learn`, `quantstats` and `jupyter` (the optional `examples`
-extra, `pyproject.toml`).
+The examples additionally need `jupyter` and `quantstats` (the optional `examples` extra,
+`pyproject.toml`).
 
 ## Quickstart
 
@@ -126,8 +126,25 @@ Keep this in mind when comparing a found portfolio with a benchmark.
 
 See the [examples folder](https://github.com/answering007/bfportf/tree/master/examples):
 
-- `BfPortf 01 Simple example.ipynb` — Sharpe ratio search with a train/test split;
-- `BfPortf 02 Custom target function.ipynb` — custom callable metric and a QuantStats report.
+- `BfPortf 01 Simple example.ipynb` — Sharpe ratio search with an in-sample / out-of-sample split, the
+  reports and the three search strategies;
+- `BfPortf 02 Custom target function.ipynb` — a custom `Metric`, its direction and a QuantStats report;
+- `BfPortf 03 Metrics and strategies.ipynb` — the registry, the optimization direction, `tolerance`, the
+  cost of the strategies, the errors and short legs.
+
+The example data (`prices.csv`, 13.9 MB, 500 symbols) is not tracked in git. Put the file next to the
+notebooks, otherwise the notebooks download it from a pinned commit:
+
+```console
+curl -L -o examples/prices.csv https://raw.githubusercontent.com/answering007/bfportf/314397c/examples/prices.csv
+```
+
+Run them with the optional extra:
+
+```console
+uv sync --extra examples
+uv run jupyter lab examples
+```
 
 ## Development
 

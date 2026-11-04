@@ -114,6 +114,8 @@
 - `[x]` **P2-4.** `examples/prices.csv` (14.5 МБ) убран из индекса git и из sdist; ноутбуки качают данные по URL; output-ы ноутбуков вычищены.
 - `[x]` **P2-5.** `[project.optional-dependencies] examples` (`scikit-learn`, `quantstats`, `jupyter`); `uv.lock` пересобран и включает extra.
 - `[x]` **P2-9.** README: установка из wheel (ADR-5), Quickstart, метрики, стратегии, веса, команды разработки; `CHANGELOG.md` с разделом `[Unreleased]`.
+- `[x]` **P2-4.** Примеры переведены на API 0.2: слайс вместо `train_test_split`, inverse-vol веса оцениваются только in-sample (тест масштабируется теми же весами), кастомная метрика через `Metric`, стратегии сравниваются на одной вселенной, показаны `tolerance`, ошибки и инверсные ноги. Добавлен ноутбук `03 Metrics and strategies`.
+- `[x]` **P2-4.** Данные примеров: локальный `prices.csv` (если есть) или закреплённый коммит `314397c` — ссылка не зависит от ветки и не ломается при слиянии `dev` в `master`; `examples/*.html` (отчёты QuantStats) в `.gitignore`; `scikit-learn` удалён из `examples` extra.
 - `[x]` **ADR-5.** PyPI-бейджи удалены, установка документирована как `pip install <wheel>`, `uv build` входит в CI.
 - `[x]` Проверка сборки: `uv build` -> wheel 28 КБ (24 файла, `py.typed`, без CSV) и sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`); установка wheel в чистое venv -> `0.2.0 35 sharpe`.
 - `[x]` YAML-файлы (CI и pre-commit) провалидированы локально (`yaml.safe_load`).
@@ -411,7 +413,7 @@ src/bfportf/
 - sdist ужат с 555 КБ до 33 КБ: исключены `uv.lock` (1.7 МБ), `plan.md`, `examples/prices.csv`, `.github`, `.pre-commit-config.yaml`.
 - Wheel (28 КБ, 24 файла) содержит `py.typed` и все модули пакета; установка в чистое venv подтягивает только `numpy`/`pandas`/`scipy`/`tqdm`.
 - `examples` extra тянет `jupyter`, `quantstats`, `scikit-learn` — в `uv.lock` 251 пакет с учётом extra; CI-job `examples` проверяет только резолв, чтобы не устанавливать Jupyter на каждый прогон.
-- `examples/prices.csv` удалён из индекса (`git rm --cached`), но остаётся в истории git; переписывание истории не делалось.
+- `examples/prices.csv` удалён из индекса (`git rm --cached`), но остаётся в истории git; переписывание истории не делалось. Ноутбуки используют локальную копию, если её нет — закреплённый коммит `314397c` (raw-ссылка по SHA не зависит от ветки).
 - Версии `rev` в `.pre-commit-config.yaml` зафиксированы вручную; обновление — `uv run pre-commit autoupdate`.
 - ruff по-прежнему исключает `examples/` (P2-10): в ячейках примеров осмысленный порядок импортов и длинные URL.
 
@@ -462,6 +464,7 @@ tests/
 | 2026-11-04 | 1 | Корректность: фикс CAGR (off-by-one); политика NaN/inf в метриках; isfinite-фильтр кандидатов; параметр `tolerance`; явный `normalize` в `get_portfolio_return`; `exceptions.py` (`DataValidationError`/`UnknownSymbolError`); `validate_returns()`; согласованы `ddof`/`risk_free`; recovery factor через компаундированный PnL; `benchmark_weights`; полный набор тестов (85) | `uv run pytest -q --cov=bfportf` -> 85 passed, 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> 6 `import-untyped` (baseline) | f92620d |
 | 2026-11-04 | 2 | Архитектура 0.2.0: слои `data`/`scaling`/`portfolio`/`metrics`/`search`; реестр `METRICS`; стратегии greedy/beam/exhaustive; `list[PortfolioResult]`; публичный API + `py.typed`; векторные метрики (2.7x); mypy чистый; примеры и README обновлены; добавлен `CHANGELOG` | `uv run pytest -q --cov=bfportf` -> 124 passed, 96%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success | 780f764 |
 | 2026-11-04 | 3 | Упаковка: CI-workflow (3 job, matrix 3.10-3.13), pre-commit, метаданные PEP 639, `examples` extra, `prices.csv` убран из git, sdist/wheel ужаты, README/CHANGELOG обновлены, ADR-5 (без PyPI) | `uv build` -> wheel 28 КБ + sdist 33 КБ; установка wheel в чистом venv -> `0.2.0 35 sharpe`; `uv lock --check` -> OK; `uv run pytest -q` -> 124 passed; ruff/format/mypy чисто | c98752f |
+| 2026-11-05 | 3 | Примеры: ноутбуки 01/02 переведены на API 0.2, добавлен `03 Metrics and strategies`; данные — локальная копия или pinned-коммит `314397c`; `scikit-learn` убран из `examples` extra; README/CHANGELOG обновлены | nbclient-прогон: 01 — 7.8 c, 02 — 12.6 c, 03 — 3.7 c, ошибок нет; `uv lock --check` -> OK; `uv run pytest -q` -> 124 passed; ruff/format/mypy чисто | — |
 
 ---
 

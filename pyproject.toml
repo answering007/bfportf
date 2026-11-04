@@ -41,7 +41,6 @@ Source = "https://github.com/answering007/bfportf"
 examples = [
   "jupyter>=1.0",
   "quantstats>=0.0.62",
-  "scikit-learn>=1.3",
 ]
 
 [tool.hatch.version]

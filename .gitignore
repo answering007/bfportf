@@ -223,3 +223,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Example data: the notebooks download prices.csv from GitHub, the file is not stored in git
+/examples/prices.csv

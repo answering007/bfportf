@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  UV_LINK_MODE: copy
+
+jobs:
+  quality:
+    name: lint, types and tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies from the lock file
+        run: uv sync --locked --python ${{ matrix.python-version }}
+
+      - name: Lint
+        run: uv run --python ${{ matrix.python-version }} ruff check .
+
+      - name: Format check
+        run: uv run --python ${{ matrix.python-version }} ruff format --check .
+
+      - name: Type check
+        run: uv run --python ${{ matrix.python-version }} mypy src
+
+      - name: Tests with coverage
+        run: uv run --python ${{ matrix.python-version }} pytest -q --cov=bfportf --cov-report=term-missing
+
+  build:
+    name: build and install the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check the wheel contents
+        run: |
+          uv run --no-project python - <<'PY'
+          import pathlib
+          import zipfile
+
+          wheel = next(pathlib.Path("dist").glob("*.whl"))
+          names = zipfile.ZipFile(wheel).namelist()
+          assert "bfportf/py.typed" in names, names
+          assert not [name for name in names if name.endswith("prices.csv")], names
+          print(wheel.name, len(names), "files")
+          PY
+
+      - name: Install the wheel into a clean environment
+        run: |
+          uv venv /tmp/check
+          uv pip install --python /tmp/check/bin/python dist/*.whl
+          /tmp/check/bin/python -c "import bfportf; print(bfportf.__version__, len(bfportf.__all__))"
+
+  examples:
+    name: install the examples extra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Resolve the examples extra
+        run: uv sync --locked --extra examples

@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). For `0.x` releases a minor
 version bump may contain breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- CI workflow (`.github/workflows/ci.yml`): `ruff`, `ruff format`, `mypy` and `pytest` on Python
+  3.10-3.13 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
+  an `examples` extra resolution job.
+- `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout` and whitespace/EOF checks.
+- `examples` optional dependency group (`scikit-learn`, `quantstats`, `jupyter`).
+
+### Changed
+
+- Distribution without PyPI: wheels and sdists are attached to GitHub releases (see ADR-5 in
+  `plan.md`), the PyPI badges were removed from the README.
+- Package metadata: PEP 639 `license-files`, real project URLs, author, keywords,
+  `hatchling>=1.27`.
+- `examples/prices.csv` (14.5 MB) is no longer tracked in git; the notebooks download it by URL.
+
 ## [0.2.0] - 2026-11-04
 
 ### Added

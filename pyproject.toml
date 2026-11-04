@@ -1,15 +1,16 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "bfportf"
 dynamic = ["version"]
-description = "Tool to find portfolios"
+description = "Find equity portfolios by a target metric (greedy, beam and exhaustive search)"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
-keywords = []
+license-files = ["LICENSE.txt"]
+keywords = ["portfolio", "optimization", "sharpe", "drawdown", "quant", "trading", "backtesting"]
 authors = [
   { name = "answering007", email = "answering007@gmail.com" },
 ]
@@ -32,9 +33,16 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/bfportf#readme"
-Issues = "https://github.com/unknown/bfportf/issues"
-Source = "https://github.com/unknown/bfportf"
+Documentation = "https://github.com/answering007/bfportf#readme"
+Issues = "https://github.com/answering007/bfportf/issues"
+Source = "https://github.com/answering007/bfportf"
+
+[project.optional-dependencies]
+examples = [
+  "jupyter>=1.0",
+  "quantstats>=0.0.62",
+  "scikit-learn>=1.3",
+]
 
 [tool.hatch.version]
 path = "src/bfportf/__about__.py"
@@ -43,7 +51,9 @@ path = "src/bfportf/__about__.py"
 dev = [
   "coverage[toml]>=6.5",
   "mypy>=1.8.0",
+  "nbstripout>=0.7",
   "pandas-stubs>=2.0",
+  "pre-commit>=3.6",
   "pytest>=7.4",
   "pytest-cov>=4.1",
   "ruff>=0.6.0",
@@ -144,4 +154,16 @@ exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bfportf"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/.pre-commit-config.yaml",
+  "/examples/*.csv",
+  "/plan.md",
+  "/uv.lock",
 ]

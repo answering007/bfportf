@@ -1,7 +1,6 @@
 # bfportf
 
-[![PyPI - Version](https://img.shields.io/pypi/v/bfportf.svg)](https://pypi.org/project/bfportf)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bfportf.svg)](https://pypi.org/project/bfportf)
+**Python 3.9+ | MIT | no PyPI release — install the wheel from the GitHub releases**
 
 Tool to find equity portfolios by a target metric (Sharpe ratio, drawdown, profit factor, ...) with
 greedy, beam or exhaustive search.
@@ -21,9 +20,15 @@ greedy, beam or exhaustive search.
 
 ## Installation
 
+The package is not published on PyPI. Download the `bfportf-<version>-py3-none-any.whl` artifact from
+the [releases page](https://github.com/answering007/bfportf/releases) and install it:
+
 ```console
-pip install bfportf
+pip install "path/to/bfportf-0.2.0-py3-none-any.whl"
 ```
+
+The examples additionally need `scikit-learn`, `quantstats` and `jupyter` (the optional `examples`
+extra, `pyproject.toml`).
 
 ## Quickstart
 
@@ -135,7 +140,11 @@ uv run pytest -q --cov=bfportf
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src
+uv run pre-commit install      # optional: ruff, ruff-format, nbstripout, uv-lock on commit
 ```
+
+The CI workflow (`.github/workflows/ci.yml`) runs the same checks on Python 3.10-3.13 with
+`uv sync --locked`, then builds the wheel and installs it into a clean environment.
 
 ## License
 

@@ -46,9 +46,9 @@
 | 0 | Блокеры P0: работоспособность на актуальных numpy/pandas/scipy, чистый линт | `[x]` (0.1.2) |
 | 1 | Корректность расчётов: CAGR, NaN/inf, tolerance, семантика весов, валидация | `[x]` (0.1.3) |
 | 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[x]` (0.2.0) |
-| 3 | Упаковка, CI, документация, данные примеров | `[ ]` |
+| 3 | Упаковка, CI, документация, данные примеров | `[x]` (0.2.0) |
 
-**Готовность к использованию:** после этапа 2 (0.2.0) пакет имеет публичный API (`bfportf.__all__`), три стратегии поиска, реестр метрик с направлением и векторный fast-path (2.7x). 124 теста, покрытие 96%, `mypy src` — 0 ошибок. Остаются задачи P2, связанные с CI, метаданными и данными примеров (этап 3).
+**Готовность к использованию:** все этапы 0-3 закрыты. Публичный API, три стратегии, реестр метрик с направлением, векторный fast-path (2.7x), 124 теста и покрытие 96%, `mypy` без ошибок, CI-workflow и pre-commit, wheel 28 КБ (с `py.typed`) и sdist 33 КБ без `prices.csv`/`uv.lock`. Релиза в PyPI нет по ADR-5 — артефакты прикладываются к GitHub-релизу.
 
 ---
 
@@ -106,6 +106,21 @@
 
 Проверки этапа 2: `uv run pytest -q --cov=bfportf` -> 124 passed, покрытие 96%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success, 0 issues.
 
+### Этап 3 (0.2.0) — выполнено
+
+- `[x]` **P2-2.** `.github/workflows/ci.yml`: job `quality` (matrix 3.10-3.13, `uv sync --locked`, ruff, ruff format, mypy, pytest с покрытием), job `build` (wheel/sdist, проверка содержимого, установка в чистое окружение), job `examples` (резолв extra).
+- `[x]` **P2-2.** `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout`, whitespace/EOF, `check-added-large-files` (1 МБ).
+- `[x]` **P2-3.** Метаданные: реальные URL GitHub, автор, `license-files` (PEP 639), `hatchling>=1.27`, `keywords`, описание; заголовки SPDX в `__about__.py` и `tests/__init__.py`.
+- `[x]` **P2-4.** `examples/prices.csv` (14.5 МБ) убран из индекса git и из sdist; ноутбуки качают данные по URL; output-ы ноутбуков вычищены.
+- `[x]` **P2-5.** `[project.optional-dependencies] examples` (`scikit-learn`, `quantstats`, `jupyter`); `uv.lock` пересобран и включает extra.
+- `[x]` **P2-9.** README: установка из wheel (ADR-5), Quickstart, метрики, стратегии, веса, команды разработки; `CHANGELOG.md` с разделом `[Unreleased]`.
+- `[x]` **ADR-5.** PyPI-бейджи удалены, установка документирована как `pip install <wheel>`, `uv build` входит в CI.
+- `[x]` Проверка сборки: `uv build` -> wheel 28 КБ (24 файла, `py.typed`, без CSV) и sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`); установка wheel в чистое venv -> `0.2.0 35 sharpe`.
+- `[x]` YAML-файлы (CI и pre-commit) провалидированы локально (`yaml.safe_load`).
+- `[-]` **P2-10.** Линт `.ipynb` остаётся исключённым осознанно: в ячейках примеров порядок импортов и длинные URL — `extend-exclude = ["examples"]` сохранён.
+
+Проверки этапа 3: `uv run pytest -q` -> 124 passed; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success; `uv lock --check` -> lock актуален; `uv build` + установка wheel в чистом venv -> OK.
+
 ---
 
 ## Принятые решения (ADR)
@@ -116,6 +131,7 @@
 | ADR-2 | 2026-11-04 | **Единый тулчейн — `uv`.** Зависимости и dev-группы в `pyproject.toml` (`dependencies`, `[dependency-groups]`, `[project.optional-dependencies]`); воспроизводимость — `uv lock` + `uv.lock` в git; запуск задач — `uv run ...` | `hatchling` остаётся **только** build-backend в `[build-system]`. Удаляются `[tool.hatch.envs.*]`, `[[tool.hatch.envs.all.matrix]]` и hatch-скрипты; их заменяют `uv run pytest`, `uv run ruff check .`, `uv run black --check .`, `uv run mypy src`. Локальный `.venv` уже создан `uv 0.12.13`, `hatch` в PATH отсутствует. CI — `uv sync --locked` |
 | ADR-3 | 2026-11-04 | **Стратегии поиска публичны.** `GreedySearch` (по умолчанию), `BeamSearch(width=5)`, `ExhaustiveSearch(max_combinations=2_000_000)` — классы за протоколом `SearchStrategy`; `find_portfolios(..., strategy=...)` | Разные компромиссы «качество/время»: greedy — быстро и детерминированно, beam — обходит часть локальных оптимумов за `B`-кратное время, exhaustive — гарантированный оптимум на маленьких вселенных (n <= 15) и эталон для тестов. `max_combinations` защищает от случайного запуска на 700 бумагах (~57 млн сочетаний). `find_next_symbol` / `find_portfolio_for_symbol` остаются внутренними |
 | ADR-4 | 2026-11-04 | **Результат поиска — `list[PortfolioResult]`.** `PortfolioResult(symbols: tuple[str, ...], weights: pd.Series, value: float, metric_name: str)` + `results_to_frame()`; `maximize=None` берётся из `Metric` | Убирает `np.ndarray` в object-колонке DataFrame, даёт типизацию и веса портфеля. Breaking change разрешён ADR-1; примеры и README обновляются, табличное представление сохраняется через `results_to_frame` |
+| ADR-5 | 2026-11-04 | **Публикации в PyPI не будет.** Распространение — `wheel`/`sdist`, прикладываемые к релизу на GitHub; бейджи PyPI из README удаляются, установка документируется как `pip install <путь к wheel>` | Решение пользователя. Следствия: `uv build` входит в CI, версия остаётся в `0.x`, `[project.urls]` ведут на GitHub, `CHANGELOG.md` ведётся как история проекта, а не как источник для PyPI |
 
 Следствия по этапам:
 
@@ -146,6 +162,8 @@
 | pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 124 passed, 96% |
 | mypy | 2.4.1 + `pandas-stubs`/`types-tqdm`; `uv run mypy src` -> 0 ошибок |
 | Производительность | 200 бумаг x 1000 строк, `max_number=3`: 0.6 c (векторные метрики) против 1.6 c (скалярный путь) |
+| build | wheel 28 КБ (24 файла, `py.typed`), sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`) |
+| CI / pre-commit | `.github/workflows/ci.yml` (jobs: quality / build / examples), `.pre-commit-config.yaml` |
 
 Команды воспроизведения исходных дефектов (до этапа 0):
 
@@ -201,15 +219,15 @@ python -c "import numpy as np; print(hasattr(np, 'in1d'))"           # False
 | ID | Область | Дефект / задача | Статус |
 |---|---|---|---|
 | P2-1 | Тесты | `tests/` пуст (только `__init__.py`) — покрытие 0% | `[x]` |
-| P2-2 | CI | `.github` отсутствует, workflow был удалён в коммите `c3240e1` | `[ ]` |
-| P2-3 | Метаданные | URL-ы ведут на `github.com/unknown/bfportf` (`pyproject.toml:34-36`), автор-заглушка `U.N. Owen <void@some.where>` (`__about__.py:1`), `license = "MIT"` требует `hatchling>=1.27` (PEP 639), build-backend не запинен | `[ ]` |
-| P2-4 | Данные примеров | `examples/prices.csv` — 14.5 МБ в git, при этом ноутбуки грузят его по HTTPS; sdist раздут (tar.gz ~7 МБ); output-ы ноутбуков не стрипнуты (NB02 — 1 МБ) | `[~]` |
+| P2-2 | CI | `.github` отсутствует, workflow был удалён в коммите `c3240e1` | `[x]` |
+| P2-3 | Метаданные | URL-ы ведут на `github.com/unknown/bfportf` (`pyproject.toml:34-36`), автор-заглушка `U.N. Owen <void@some.where>` (`__about__.py:1`), `license = "MIT"` требует `hatchling>=1.27` (PEP 639), build-backend не запинен | `[x]` |
+| P2-4 | Данные примеров | `examples/prices.csv` — 14.5 МБ в git, при этом ноутбуки грузят его по HTTPS; sdist раздут (tar.gz ~7 МБ); output-ы ноутбуков не стрипнуты (NB02 — 1 МБ) | `[x]` |
 | P2-5 | Тулчейн | Двойственность: `uv.lock` в репо, а задачи — в hatch-env; нет `[dependency-groups]` | `[x]` |
 | P2-6 | Архитектура | `utils.py` смешивает конверсии цен, склейку портфеля и скоринг; `optimization.py` совмещает стратегию поиска и метрику; `__init__.py` пуст — нет публичного API, `py.typed`, `__version__`; нет исключений и логирования | `[x]` |
 | P2-7 | Типизация | Нет `[tool.mypy]`, нет `py.typed`, `np.float64` вместо `NDArray[np.float64]` в аннотациях | `[x]` |
 | P2-8 | Производительность | `np.apply_along_axis` (Python-цикл по кандидатам) + аллокация `returns + initial_returns` на каждом шаге; возможна векторизация по матрице (T x N) | `[x]` |
 | P2-9 | Документация | README 26 строк без API/Quickstart/раздела о методологии весов; нет `CHANGELOG.md` | `[x]` |
-| P2-10 | Линт примеров | ruff 0.17 линтит `.ipynb`: в `examples/` 16 замечаний (`E402`/`T201`/`E501`). Временно `extend-exclude = ["examples"]`; включить обратно после `nbstripout` (этап 3) | `[x]` (временно) |
+| P2-10 | Линт примеров | ruff 0.17 линтит `.ipynb`: в `examples/` 16 замечаний (`E402`/`T201`/`E501`). Временно `extend-exclude = ["examples"]`; включить обратно после `nbstripout` (этап 3) | `[-]` (временно) |
 
 ---
 
@@ -228,8 +246,8 @@ python -c "import numpy as np; print(hasattr(np, 'in1d'))"           # False
 - `[x]` Смоук-тест `tests/test_smoke.py`: импорт пакета + `find_portfolios` + `create_report` (включая `custom_formatting`).
 - `[x]` **ADR-2.** `uv lock` + `uv sync --group dev`; `uv.lock` актуализирован.
 - `[x]` Версия `0.1.2` в `src/bfportf/__about__.py`, `plan.md` обновлён.
-- `[ ]` Команды разработчика (`uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`) зафиксировать в README (этап 3, P2-9).
-- `[ ]` Коммит этапа 0 в ветке `dev` (ожидает подтверждения).
+- `[x]` Команды разработчика (`uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`) зафиксированы в README (этап 3, P2-9).
+- `[x]` Коммит этапа 0 в ветке `dev` — `b237720`.
 
 #### Замечания по реализации
 
@@ -375,17 +393,27 @@ src/bfportf/
 
 ### Чек-лист
 
-- `[ ]` **P2-2 / ADR-2.** `.github/workflows/ci.yml`: matrix Python 3.10-3.13, `uv sync --locked`, `uv run pytest --cov`, `uv run ruff check`, `uv run ruff format --check`, `uv run mypy src`; отдельный job — `uv build` и установка wheel в чистом venv.
-- `[ ]` **P2-2.** `pre-commit` (запуск через `uv run pre-commit`): `astral-sh/uv-pre-commit` (`uv-lock`), `ruff`, `ruff-format`, `nbstripout`, проверка whitespace/EOF.
-- `[ ]` **P2-3.** Метаданные: реальные URL-ы и автор, `license` по PEP 639 + `hatchling>=1.27` в `build-system.requires`, актуальные классификаторы и `keywords`.
-- `[ ]` **P2-5.** `[dependency-groups] dev` (pytest, coverage, ruff, mypy), `[project.optional-dependencies] examples` (scikit-learn, quantstats, jupyter); `uv lock`; `uv.lock` в git; команды разработчика — через `uv run`.
-- `[ ]` **P2-4.** Убрать `examples/prices.csv` из индекса git (`.gitignore`), исключить из sdist (`[tool.hatch.build.targets.sdist] exclude`); ноутбуки грузят данные по URL.
-- `[ ]` **P2-4.** Стрипнуть output-ы ноутбуков (`nbstripout`), NB02 уменьшится с ~1 МБ.
-- `[ ]` **P2-7.** `[tool.mypy]` (`disallow_untyped_defs`, `warn_unused_ignores`), `py.typed`, переход на `NDArray[np.float64]` в аннотациях.
-- `[ ]` **P2-9.** README: Quickstart (код из примера 01), раздел «Методология: веса, нормализация, плечо», раздел про выбор метрики и `maximize`.
-- `[ ]` **P2-9.** `CHANGELOG.md` (Keep a Changelog), версии по этапам 0.1.2 / 0.1.3 / 0.2.0.
-- `[ ]` Проверка сборки (ADR-2): `uv build`, установка wheel в чистом venv (`uv venv` + `uv pip install`), прогон смоук-теста.
-- `[ ]` Обновить `plan.md` (финальный статус), коммит в `dev`.
+- `[x]` **P2-2 / ADR-2.** `.github/workflows/ci.yml`: matrix Python 3.10-3.13, `uv sync --locked`, `uv run pytest --cov`, `uv run ruff check`, `uv run ruff format --check`, `uv run mypy src`; отдельный job — `uv build` и установка wheel в чистом venv.
+- `[x]` **P2-2.** `pre-commit` (запуск через `uv run pre-commit`): `astral-sh/uv-pre-commit` (`uv-lock`), `ruff`, `ruff-format`, `nbstripout`, проверка whitespace/EOF.
+- `[x]` **P2-3.** Метаданные: реальные URL-ы и автор, `license` по PEP 639 + `hatchling>=1.27` в `build-system.requires`, актуальные классификаторы и `keywords`.
+- `[x]` **P2-5.** `[dependency-groups] dev` (pytest, coverage, ruff, mypy), `[project.optional-dependencies] examples` (scikit-learn, quantstats, jupyter); `uv lock`; `uv.lock` в git; команды разработчика — через `uv run`.
+- `[x]` **P2-4.** Убрать `examples/prices.csv` из индекса git (`.gitignore`), исключить из sdist (`[tool.hatch.build.targets.sdist] exclude`); ноутбуки грузят данные по URL.
+- `[x]` **P2-4.** Стрипнуть output-ы ноутбуков (`nbstripout`), NB02 уменьшится с ~1 МБ.
+- `[x]` **P2-7.** `[tool.mypy]` (`disallow_untyped_defs`, `warn_unused_ignores`), `py.typed`, переход на `NDArray[np.float64]` в аннотациях.
+- `[x]` **P2-9.** README: Quickstart (код из примера 01), раздел «Методология: веса, нормализация, плечо», раздел про выбор метрики и `maximize`.
+- `[x]` **P2-9.** `CHANGELOG.md` (Keep a Changelog), версии по этапам 0.1.2 / 0.1.3 / 0.2.0.
+- `[x]` Проверка сборки (ADR-2): `uv build`, установка wheel в чистом venv (`uv venv` + `uv pip install`), прогон смоук-теста.
+- `[x]` Обновить `plan.md` (финальный статус), коммит в `dev`.
+
+#### Замечания по реализации
+
+- **ADR-5:** релиза в PyPI нет. Артефакты `dist/*.whl` и `dist/*.tar.gz` прикладываются к GitHub-релизу; README больше не содержит PyPI-бейджей, установка описана как `pip install <wheel>`.
+- sdist ужат с 555 КБ до 33 КБ: исключены `uv.lock` (1.7 МБ), `plan.md`, `examples/prices.csv`, `.github`, `.pre-commit-config.yaml`.
+- Wheel (28 КБ, 24 файла) содержит `py.typed` и все модули пакета; установка в чистое venv подтягивает только `numpy`/`pandas`/`scipy`/`tqdm`.
+- `examples` extra тянет `jupyter`, `quantstats`, `scikit-learn` — в `uv.lock` 251 пакет с учётом extra; CI-job `examples` проверяет только резолв, чтобы не устанавливать Jupyter на каждый прогон.
+- `examples/prices.csv` удалён из индекса (`git rm --cached`), но остаётся в истории git; переписывание истории не делалось.
+- Версии `rev` в `.pre-commit-config.yaml` зафиксированы вручную; обновление — `uv run pre-commit autoupdate`.
+- ruff по-прежнему исключает `examples/` (P2-10): в ячейках примеров осмысленный порядок импортов и длинные URL.
 
 ### Критерии приёмки этапа 3
 
@@ -393,6 +421,8 @@ src/bfportf/
 |---|---|
 | CI на GitHub | зелёный на 3.10-3.13 (через `uv sync --locked`) |
 | `uv build` | успешно; wheel < 100 КБ, sdist без `prices.csv` |
+| Размеры артефактов | wheel 28 КБ (24 файла, `py.typed`), sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`) |
+| `uv lock --check` | lock актуален, включает `examples` extra |
 | Установка wheel в чистом venv | `import bfportf` + смоук-тест проходят |
 | Репозиторий | нет данных > 1 МБ, ноутбуки без output-ов |
 | README | позволяет пройти путь «установка -> поиск портфеля -> отчёт» без чтения кода |
@@ -431,6 +461,7 @@ tests/
 | 2026-11-04 | 0 | Блокеры закрыты: `np.isin` вместо `np.in1d`; `scipy>=1.8` + нижние границы зависимостей; `custom_formatting` через `astype(object)`; ruff-конфиг в `[tool.ruff.lint]`; переход на `ruff format` (black удалён); `requires-python>=3.9`; удалены hatch-окружения, добавлен `[dependency-groups] dev`; версия 0.1.2; смоук-тесты | `uv run pytest -q` -> 4 passed; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 10 files already formatted; сквозной сценарий `scale_return_data` -> `find_portfolios` -> `create_report(custom_formatting=...)` | b237720 |
 | 2026-11-04 | 1 | Корректность: фикс CAGR (off-by-one); политика NaN/inf в метриках; isfinite-фильтр кандидатов; параметр `tolerance`; явный `normalize` в `get_portfolio_return`; `exceptions.py` (`DataValidationError`/`UnknownSymbolError`); `validate_returns()`; согласованы `ddof`/`risk_free`; recovery factor через компаундированный PnL; `benchmark_weights`; полный набор тестов (85) | `uv run pytest -q --cov=bfportf` -> 85 passed, 95%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 17 files already formatted; `uv run mypy src` -> 6 `import-untyped` (baseline) | f92620d |
 | 2026-11-04 | 2 | Архитектура 0.2.0: слои `data`/`scaling`/`portfolio`/`metrics`/`search`; реестр `METRICS`; стратегии greedy/beam/exhaustive; `list[PortfolioResult]`; публичный API + `py.typed`; векторные метрики (2.7x); mypy чистый; примеры и README обновлены; добавлен `CHANGELOG` | `uv run pytest -q --cov=bfportf` -> 124 passed, 96%; `uv run ruff check .` -> All checks passed; `uv run ruff format --check .` -> 34 files already formatted; `uv run mypy src` -> Success | 780f764 |
+| 2026-11-04 | 3 | Упаковка: CI-workflow (3 job, matrix 3.10-3.13), pre-commit, метаданные PEP 639, `examples` extra, `prices.csv` убран из git, sdist/wheel ужаты, README/CHANGELOG обновлены, ADR-5 (без PyPI) | `uv build` -> wheel 28 КБ + sdist 33 КБ; установка wheel в чистом venv -> `0.2.0 35 sharpe`; `uv lock --check` -> OK; `uv run pytest -q` -> 124 passed; ruff/format/mypy чисто | — |
 
 ---
 
@@ -461,7 +492,6 @@ tests/
 - ~~Формат результата поиска~~ -> **ADR-4**: `find_portfolios` возвращает `list[PortfolioResult]`, DataFrame — через `results_to_frame`.
 - ~~Политика `inf`/`nan`~~ -> реализовано в 0.1.3: метрики возвращают `np.nan`, кандидаты с нефинитным значением отбрасываются.
 - ~~Семантика весов~~ -> реализовано в 0.1.3: дефолт `normalize="sum"`, режим `"none"` доступен явно.
+- ~~Публикация в PyPI~~ -> **ADR-5**: релиза в PyPI не будет, распространяем `wheel`/`sdist` через GitHub-релизы.
 
-**Остаётся открытым:**
-
-1. **Публикация** (этап 3). Нужен ли релиз в PyPI (бейджи в README есть, публикации нет)?
+Открытых вопросов не осталось.

@@ -36,7 +36,7 @@ The examples additionally need `jupyter` and `quantstats` (the optional `example
 import pandas as pd
 import bfportf as bf
 
-prices = pd.read_csv("prices.csv", index_col=0, parse_dates=["Date"])
+prices = pd.read_parquet("assets/prices.parquet")  # local copy of the example data
 returns = bf.load_returns(prices)  # pct_change + drop incomplete periods
 bf.validate_returns(returns)  # NaN / inf / duplicates / index order
 

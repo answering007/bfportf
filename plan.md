@@ -115,7 +115,7 @@
 - `[x]` **P2-5.** `[project.optional-dependencies] examples` (`scikit-learn`, `quantstats`, `jupyter`); `uv.lock` пересобран и включает extra.
 - `[x]` **P2-9.** README: установка из wheel (ADR-5), Quickstart, метрики, стратегии, веса, команды разработки; `CHANGELOG.md` с разделом `[Unreleased]`.
 - `[x]` **P2-4.** Примеры переведены на API 0.2: слайс вместо `train_test_split`, inverse-vol веса оцениваются только in-sample (тест масштабируется теми же весами), кастомная метрика через `Metric`, стратегии сравниваются на одной вселенной, показаны `tolerance`, ошибки и инверсные ноги. Добавлен ноутбук `03 Metrics and strategies`.
-- `[x]` **P2-4.** Данные примеров: `assets/prices.parquet` (4.5 МБ, 500 символов, `float32`) вместо `examples/prices.csv` (13.9 МБ); файл не в git (`/assets/*.parquet`), исключён из sdist, публикуется ассетом GitHub-релиза. Ноутбуки берут локальную копию (`assets/` или рядом), иначе скачивают ассет `releases/latest/download/prices.parquet`, и только как последний резерв конвертируют CSV из закреплённого коммита `314397c`. Чтение parquet требует `pyarrow` (в `dependencies`).
+- `[x]` **P2-4.** Данные примеров: `assets/prices.parquet` (4.5 МБ, 500 символов, `float32`) вместо `examples/prices.csv` (13.9 МБ); файл не в git (`/assets/*.parquet`), исключён из sdist, публикуется ассетом GitHub-релиза. Ноутбуки читают только parquet: берут локальную копию (`assets/` или рядом), иначе скачивают ассет `releases/latest/download/prices.parquet`. CSV-резерв (конвертация из коммита `314397c`) удалён. Чтение parquet требует `pyarrow` (в `dependencies`).
 - `[x]` **ADR-5.** PyPI-бейджи удалены, установка документирована как `pip install <wheel>`, `uv build` входит в CI.
 - `[x]` Проверка сборки: `uv build` -> wheel 28 КБ (24 файла, `py.typed`, без CSV) и sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`); установка wheel в чистое venv -> `0.2.0 35 sharpe`.
 - `[x]` YAML-файлы (CI и pre-commit) провалидированы локально (`yaml.safe_load`).
@@ -413,7 +413,7 @@ src/bfportf/
 - sdist ужат с 555 КБ до 33 КБ: исключены `uv.lock` (1.7 МБ), `plan.md`, `examples/prices.csv`, `.github`, `.pre-commit-config.yaml`.
 - Wheel (28 КБ, 24 файла) содержит `py.typed` и все модули пакета; установка в чистое venv подтягивает только `numpy`/`pandas`/`scipy`/`tqdm`.
 - `examples` extra тянет `jupyter`, `quantstats`, `scikit-learn` — в `uv.lock` 251 пакет с учётом extra; CI-job `examples` проверяет только резолв, чтобы не устанавливать Jupyter на каждый прогон.
-- `examples/prices.csv` удалён и из индекса, и с диска; исходные данные остаются в истории git (`314397c`) и используются только как последний резерв конвертации. Рабочий формат — `assets/prices.parquet` (4.5 МБ, `float32`), он не в git (`/assets/*.parquet`), исключён из sdist и публикуется ассетом GitHub-релиза; чтение parquet требует `pyarrow` (в `dependencies`).
+- `examples/prices.csv` удалён и из индекса, и с диска; чтения CSV в примерах нет. Рабочий формат — `assets/prices.parquet` (4.5 МБ, `float32`), он не в git (`/assets/*.parquet`), исключён из sdist и публикуется ассетом GitHub-релиза; при отсутствии локальной копии ноутбук скачивает ассет, а при недоступности падает с подсказкой `curl`. Чтение parquet требует `pyarrow` (в `dependencies`).
 - Версии `rev` в `.pre-commit-config.yaml` зафиксированы вручную; обновление — `uv run pre-commit autoupdate`.
 - ruff по-прежнему исключает `examples/` (P2-10): в ячейках примеров осмысленный порядок импортов и длинные URL.
 

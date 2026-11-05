@@ -169,7 +169,7 @@ exclude = [
   "/.github",
   "/.pre-commit-config.yaml",
   "/assets/*.parquet",
-  "/examples/*.csv",
+  "/examples/*.parquet",
   "/plan.md",
   "/uv.lock",
 ]

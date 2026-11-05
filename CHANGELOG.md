@@ -30,8 +30,8 @@ version bump may contain breaking changes.
   metric is a `Metric` with a name and a direction, the strategies are compared on the same universe, and
   `tolerance` and the validation errors are demonstrated.
 - The example data is `assets/prices.parquet` (4.5 MB, 500 symbols) instead of `examples/prices.csv` (13.9 MB):
-  the notebooks read the parquet file from `assets/` or a copy next to the notebook, download it from the
-  release asset when it is missing, and fall back to the original CSV from a pinned commit (`314397c`).
+  the notebooks read the parquet file from `assets/` or a copy next to the notebook and download the release
+  asset when the file is missing.
 
 ### Removed
 

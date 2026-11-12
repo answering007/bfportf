@@ -227,6 +227,8 @@ __marimo__/
 
 # Example data: prices.parquet is read from assets/ or the release asset, not stored in git
 /assets/*.parquet
+# A downloaded copy next to the notebook (the fallback cache path)
+/examples/*.parquet
 
 # Example run artifacts (QuantStats reports)
 /examples/*.html

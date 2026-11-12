@@ -2,8 +2,23 @@
 
 from pathlib import Path
 
+import pandas as pd
+import pytest
+
 import bfportf
-from bfportf import METRICS, PortfolioResult, __version__, create_report, find_portfolios, targets
+from bfportf import (
+    METRICS,
+    PortfolioResult,
+    __version__,
+    autocorrelation_target,
+    create_report,
+    find_portfolios,
+    load_returns,
+    resolve_metric,
+    sanitize_returns,
+    targets,
+    validate_returns,
+)
 from bfportf.metrics import basic
 from bfportf.optimization import find_portfolios as legacy_find_portfolios
 
@@ -65,3 +80,33 @@ def test_public_api_is_usable() -> None:
     assert callable(find_portfolios)
     assert callable(create_report)
     assert PortfolioResult.__dataclass_fields__
+
+
+def test_optional_arguments_are_keyword_only(returns: pd.DataFrame) -> None:
+    # Options must be passed by name, so a bare `True` cannot land in the wrong slot
+    with pytest.raises(TypeError):
+        find_portfolios(returns, "sharpe", None)
+    with pytest.raises(TypeError):
+        find_portfolios(returns, "sharpe", True)
+    with pytest.raises(TypeError):
+        load_returns(returns, False)
+    with pytest.raises(TypeError):
+        sanitize_returns(returns, False)
+    with pytest.raises(TypeError):
+        validate_returns(returns, True)
+    with pytest.raises(TypeError):
+        resolve_metric("sharpe", False)
+    with pytest.raises(TypeError):
+        autocorrelation_target(returns.iloc[:, 0].to_numpy(), False)
+
+
+def test_keyword_only_arguments_still_work(returns: pd.DataFrame) -> None:
+    found = find_portfolios(returns, "sharpe", max_number=1, verbose=False, validate=False, maximize=True)
+    assert found
+
+    validate_returns(returns, allow_nan=False)
+    assert not sanitize_returns(returns, drop_nan_rows=False).isna().any().any()
+    assert resolve_metric("sharpe", maximize=True) is METRICS["sharpe"]
+
+    values = returns.iloc[:, 0].to_numpy()
+    assert autocorrelation_target(values, absolute=True, periods=1) >= 0

@@ -1,7 +1,6 @@
 """Portfolio aggregation helpers."""
 
 from collections.abc import Callable, Sequence
-from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -9,7 +8,7 @@ import pandas as pd
 from bfportf.data import validate_symbols
 from bfportf.exceptions import DataValidationError, UnknownSymbolError
 
-WeightLike = Optional[Union[pd.Series, np.ndarray]]
+WeightLike = pd.Series | np.ndarray | None
 
 
 def resolve_weights(returns: pd.DataFrame, weights: WeightLike) -> pd.Series:
@@ -72,11 +71,13 @@ def get_portfolio_return(
     """Calculate the portfolio return series.
 
     Args:
-        returns (pd.DataFrame): Dataframe with returns.
+        returns (pd.DataFrame): Dataframe with returns. The returns must already be scaled by the
+            weights when the weights should change the result (see the notes below).
         portfolio_symbols (Sequence[str]): Portfolio symbols.
         return_weights (WeightLike, optional): Symbols weights. Defaults to None (equal weights).
             Weights define the allocation share of every symbol, e.g. inverse volatility shares
-            produced by :func:`bfportf.scaling.scale_return_data`.
+            produced by :func:`bfportf.scaling.scale_return_data`. They are not multiplied into the
+            returns here, they only normalize the aggregate.
         normalize (str, optional): ``"sum"`` (default) divides by the total weight of the selected
             symbols, i.e. rescales the sub portfolio to a fully invested position. ``"none"`` keeps
             the original scale (the position is leveraged according to the weights sum).
@@ -91,6 +92,12 @@ def get_portfolio_return(
             total weight is zero.
 
     Notes:
+        The computed series is ``sum(returns[symbols]) / sum(weights[symbols])`` for ``normalize="sum"``
+        and ``sum(returns[symbols])`` for ``normalize="none"``. Weights are not applied to the returns
+        internally: passing raw returns with unequal weights does not give a weighted average, it only
+        changes the divisor. To weight the symbols, scale the returns first (``returns * weights``), as
+        :func:`bfportf.scaling.scale_return_data` does.
+
         With ``normalize="sum"`` a single symbol portfolio is rescaled back to the raw symbol
         returns, i.e. the scaling done by :func:`bfportf.scaling.scale_return_data` cancels out.
     """

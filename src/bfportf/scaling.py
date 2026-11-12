@@ -1,7 +1,6 @@
 """Weight scaling helpers."""
 
 from collections.abc import Sequence
-from typing import Optional
 
 import pandas as pd
 
@@ -10,8 +9,8 @@ from bfportf.exceptions import DataValidationError, UnknownSymbolError
 
 def scale_return_data(
     df_return: pd.DataFrame,
-    target_return: Optional[float] = None,
-    target_symbol: Optional[str] = None,
+    target_return: float | None = None,
+    target_symbol: str | None = None,
 ) -> tuple:
     """Scale return (pct_change) data to equal average abs return.
 

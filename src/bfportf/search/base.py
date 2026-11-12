@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Optional, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 import pandas as pd
@@ -27,7 +27,7 @@ class SearchConfig:
         verbose (bool): Show a progress bar. Defaults to True.
     """
 
-    max_number: Optional[int] = None
+    max_number: int | None = None
     tolerance: float = 0.0
     validate: bool = True
     verbose: bool = True
@@ -105,6 +105,9 @@ class SearchStrategy(Protocol):
 def portfolio_metric(returns: np.ndarray, weights: np.ndarray, indices: Sequence[int], metric: Metric) -> float:
     """Evaluate the metric of the portfolio built from the given column indices.
 
+    The portfolio series is ``sum(returns[:, indices]) / sum(weights[indices])``: the weights
+    normalize the aggregate and are expected to be applied to the returns by the caller.
+
     Args:
         returns (np.ndarray): 2d array of returns (periods x symbols).
         weights (np.ndarray): 1d array of weights aligned with the columns.
@@ -164,7 +167,7 @@ def improves(value: float, current: float, metric: Metric, tolerance: float = 0.
     return bool(np.isfinite(delta) and delta > tolerance)
 
 
-def best_candidate(values: np.ndarray, metric: Metric, current: float, tolerance: float = 0.0) -> Optional[tuple]:
+def best_candidate(values: np.ndarray, metric: Metric, current: float, tolerance: float = 0.0) -> tuple | None:
     """Return ``(value, position)`` of the best candidate that improves ``current``.
 
     Candidates with non finite values are ignored, so degenerate portfolios are never selected.
@@ -208,7 +211,7 @@ def run_search(
     weights: np.ndarray,
     metric: Metric,
     config: SearchConfig,
-    target_symbols: Optional[Sequence[str]] = None,
+    target_symbols: Sequence[str] | None = None,
 ) -> list:
     """Run the strategy for every target symbol and build the ordered results.
 

@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -28,7 +27,7 @@ class Metric:
     name: str
     func: MetricFunction
     maximize: bool = True
-    vectorized: Optional[VectorizedMetricFunction] = None
+    vectorized: VectorizedMetricFunction | None = None
     description: str = ""
 
     def __call__(self, values: np.ndarray) -> float:

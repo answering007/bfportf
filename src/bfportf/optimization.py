@@ -5,7 +5,6 @@ Kept as a stable import path (``from bfportf.optimization import find_portfolios
 """
 
 from collections.abc import Sequence
-from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -19,14 +18,15 @@ from bfportf.search.greedy import GreedySearch
 def find_portfolios(
     returns: pd.DataFrame,
     metric: MetricLike,
-    maximize: Optional[bool] = None,
-    target_symbols: Optional[Sequence[str]] = None,
-    custom_weights: Optional[Union[pd.Series, np.ndarray]] = None,
-    max_number: Optional[int] = None,
+    *,
+    maximize: bool | None = None,
+    target_symbols: Sequence[str] | None = None,
+    custom_weights: pd.Series | np.ndarray | None = None,
+    max_number: int | None = None,
     verbose: bool = True,
     tolerance: float = 0.0,
     validate: bool = True,
-    strategy: Optional[SearchStrategy] = None,
+    strategy: SearchStrategy | None = None,
 ) -> list:
     """Find the best portfolio for every symbol with the given metric.
 
@@ -41,7 +41,9 @@ def find_portfolios(
         target_symbols (Sequence[str], optional): Symbols to use as targets. Defaults to None
             (all columns).
         custom_weights (pd.Series | np.ndarray, optional): Weight of each symbol. Defaults to None
-            (equal weights).
+            (equal weights). The weights normalize the aggregate returns; they are not multiplied into
+            the returns, so pass returns already scaled by the weights (for example the output of
+            :func:`bfportf.scaling.scale_return_data`) to get a weighted portfolio.
         max_number (int, optional): Maximum number of symbols in a portfolio. Defaults to None.
         verbose (bool, optional): Show a progress bar. Defaults to True.
         tolerance (float, optional): Minimal improvement required to add the next symbol.

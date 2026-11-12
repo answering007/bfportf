@@ -1,7 +1,6 @@
 """Report functions."""
 
-from collections.abc import Mapping, Sequence
-from typing import Callable, Optional, Union
+from collections.abc import Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -20,7 +19,7 @@ from bfportf.metrics.basic import (
 from bfportf.portfolio import WeightLike, get_portfolio_return
 
 
-def _to_array(series: Union[pd.Series, np.ndarray]) -> np.ndarray:
+def _to_array(series: pd.Series | np.ndarray) -> np.ndarray:
     """Convert a portfolio series into a 1d numpy array of returns."""
     if isinstance(series, pd.Series):
         return series.to_numpy()
@@ -31,10 +30,10 @@ def create_report(
     returns: pd.DataFrame,
     portfolio_symbols: Sequence[str],
     return_weights: WeightLike = None,
-    benchmark_symbols: Optional[Sequence[str]] = None,
-    custom_benchmark: Optional[pd.Series] = None,
-    custom_portfolio_metrics: Optional[Mapping[str, Callable[[np.ndarray], float]]] = None,
-    custom_formatting: Optional[Mapping[str, str]] = None,
+    benchmark_symbols: Sequence[str] | None = None,
+    custom_benchmark: pd.Series | None = None,
+    custom_portfolio_metrics: Mapping[str, Callable[[np.ndarray], float]] | None = None,
+    custom_formatting: Mapping[str, str] | None = None,
     benchmark_weights: WeightLike = None,
 ) -> pd.DataFrame:
     """Create the performance report.
@@ -61,8 +60,10 @@ def create_report(
 
     Notes:
         With ``benchmark_weights=None`` a single symbol benchmark is rescaled back to its raw
-        returns by ``normalize="sum"`` (see :func:`bfportf.utils.get_portfolio_return`). Pass
-        ``benchmark_weights`` explicitly to evaluate the benchmark with its own weights.
+        returns by ``normalize="sum"`` (see :func:`bfportf.portfolio.get_portfolio_return`). Pass
+        ``benchmark_weights`` explicitly to normalize the benchmark with its own weights. The weights
+        are not applied to the returns: pass returns scaled by the weights (see
+        :func:`bfportf.scaling.scale_return_data`) to get a weighted portfolio.
     """
     portfolio_metrics: dict = {
         "PnL": pnl_target,

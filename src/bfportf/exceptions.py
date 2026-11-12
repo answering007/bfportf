@@ -1,7 +1,6 @@
 """bfportf exceptions."""
 
 from collections.abc import Iterable
-from typing import Optional
 
 
 class BfPortfError(Exception):
@@ -15,7 +14,7 @@ class DataValidationError(BfPortfError, ValueError):
 class UnknownSymbolError(BfPortfError, KeyError):
     """Raised when a requested symbol is missing from the returns dataframe."""
 
-    def __init__(self, missing: Iterable[str], available: Optional[Iterable[str]] = None) -> None:
+    def __init__(self, missing: Iterable[str], available: Iterable[str] | None = None) -> None:
         """Initialize the error.
 
         Args:

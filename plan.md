@@ -2,7 +2,7 @@
 
 > Рабочая ветка: **dev**
 > Базовый коммит: `314397c` ("set train_weights to out-of-sample results")
-> Текущая версия пакета: `0.1.3` (`src/bfportf/__about__.py`)
+> Текущая версия пакета: `0.3.0` (`src/bfportf/__about__.py`)
 > Документ ведётся итеративно: после каждого завершённого шага обновляются разделы «Статус» и «Журнал изменений».
 
 ## Легенда статусов
@@ -47,8 +47,9 @@
 | 1 | Корректность расчётов: CAGR, NaN/inf, tolerance, семантика весов, валидация | `[x]` (0.1.3) |
 | 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[x]` (0.2.0) |
 | 3 | Упаковка, CI, документация, данные примеров | `[x]` (0.2.0) |
+| 4 | Контракт весов, keyword-only API, отказ от Python 3.9, `pyarrow` в extra | `[x]` (0.3.0) |
 
-**Готовность к использованию:** все этапы 0-3 закрыты. Публичный API, три стратегии, реестр метрик с направлением, векторный fast-path (2.7x), 124 теста и покрытие 96%, `mypy` без ошибок, CI-workflow и pre-commit, wheel 28 КБ (с `py.typed`) и sdist 33 КБ без `prices.csv`/`uv.lock`. Релиза в PyPI нет по ADR-5 — артефакты прикладываются к GitHub-релизу.
+**Готовность к использованию:** все этапы 0-4 закрыты. Публичный API, три стратегии, реестр метрик с направлением, векторный fast-path (2.7x), 130 тестов и покрытие 96%, `mypy` без ошибок, CI-workflow и pre-commit, wheel 28 КБ (с `py.typed`) и sdist 33 КБ без `prices.csv`/`uv.lock`. Релиза в PyPI нет по ADR-5 — артефакты прикладываются к GitHub-релизу. В 0.3.0: документированный контракт весов (ADR-6), keyword-only опции (ADR-7), `requires-python >= 3.10`, `pyarrow` перенесён в extra `examples`.
 
 ---
 
@@ -130,10 +131,12 @@
 | ID | Дата | Решение | Обоснование и следствия |
 |---|---|---|---|
 | ADR-1 | 2026-11-04 | **Обратная совместимость API 0.1.x не поддерживается.** Breaking changes допускаются в минорном релизе 0.2.0 (semver для 0.x: минор = breaking) | Не тратим силы на deprecation-шимы и дубли сигнатур. Вместо шимов: раздел `Breaking changes` в `CHANGELOG.md`, обновлённые ноутбуки-примеры и README. Патч-релизы 0.1.2 / 0.1.3 остаются совместимыми (только исправления) |
-| ADR-2 | 2026-11-04 | **Единый тулчейн — `uv`.** Зависимости и dev-группы в `pyproject.toml` (`dependencies`, `[dependency-groups]`, `[project.optional-dependencies]`); воспроизводимость — `uv lock` + `uv.lock` в git; запуск задач — `uv run ...` | `hatchling` остаётся **только** build-backend в `[build-system]`. Удаляются `[tool.hatch.envs.*]`, `[[tool.hatch.envs.all.matrix]]` и hatch-скрипты; их заменяют `uv run pytest`, `uv run ruff check .`, `uv run black --check .`, `uv run mypy src`. Локальный `.venv` уже создан `uv 0.12.13`, `hatch` в PATH отсутствует. CI — `uv sync --locked` |
+| ADR-2 | 2026-11-04 | **Единый тулчейн — `uv`.** Зависимости и dev-группы в `pyproject.toml` (`dependencies`, `[dependency-groups]`, `[project.optional-dependencies]`); воспроизводимость — `uv lock` + `uv.lock` в git; запуск задач — `uv run ...` | `hatchling` остаётся **только** build-backend в `[build-system]`. Удаляются `[tool.hatch.envs.*]`, `[[tool.hatch.envs.all.matrix]]` и hatch-скрипты; их заменяют `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`. Локальный `.venv` уже создан `uv 0.12.13`, `hatch` в PATH отсутствует. CI — `uv sync --locked` |
 | ADR-3 | 2026-11-04 | **Стратегии поиска публичны.** `GreedySearch` (по умолчанию), `BeamSearch(width=5)`, `ExhaustiveSearch(max_combinations=2_000_000)` — классы за протоколом `SearchStrategy`; `find_portfolios(..., strategy=...)` | Разные компромиссы «качество/время»: greedy — быстро и детерминированно, beam — обходит часть локальных оптимумов за `B`-кратное время, exhaustive — гарантированный оптимум на маленьких вселенных (n <= 15) и эталон для тестов. `max_combinations` защищает от случайного запуска на 700 бумагах (~57 млн сочетаний). `find_next_symbol` / `find_portfolio_for_symbol` остаются внутренними |
 | ADR-4 | 2026-11-04 | **Результат поиска — `list[PortfolioResult]`.** `PortfolioResult(symbols: tuple[str, ...], weights: pd.Series, value: float, metric_name: str)` + `results_to_frame()`; `maximize=None` берётся из `Metric` | Убирает `np.ndarray` в object-колонке DataFrame, даёт типизацию и веса портфеля. Breaking change разрешён ADR-1; примеры и README обновляются, табличное представление сохраняется через `results_to_frame` |
 | ADR-5 | 2026-11-04 | **Публикации в PyPI не будет.** Распространение — `wheel`/`sdist`, прикладываемые к релизу на GitHub; бейджи PyPI из README удаляются, установка документируется как `pip install <путь к wheel>` | Решение пользователя. Следствия: `uv build` входит в CI, версия остаётся в `0.x`, `[project.urls]` ведут на GitHub, `CHANGELOG.md` ведётся как история проекта, а не как источник для PyPI |
+| ADR-6 | 2026-11-13 | **Веса — доли аллокации, применяемые вызывающим кодом.** `get_portfolio_return` / `create_report` / поиск считают `sum(returns[symbols]) / sum(weights[symbols])`; веса не умножаются на доходности внутри функций | Вариант A из аудита 0.3.0. Сохраняет совместимость с `scale_return_data` и не меняет численные результаты. Следствие: для произвольных весов нужно сначала масштабировать доходности (`returns * weights`), как это делает `scale_return_data`. Контракт закреплён docstring-ами, разделом README «Weights and normalization» и тестами с прямой формулой |
+| ADR-7 | 2026-11-13 | **Опции публичного API — keyword-only.** `find_portfolios` (всё после `metric`), `load_returns`, `sanitize_returns`, `validate_returns`, `resolve_metric`, `autocorrelation_target` | Закрывает `FBT001`/`FBT002` без исключений в конфиге ruff: позиционный `True` больше не может попасть в чужой параметр. Breaking change разрешён ADR-1, зафиксирован в CHANGELOG. Python 3.9 при этом отброшен (`requires-python >= 3.10`), аннотации переведены на PEP 604 |
 
 Следствия по этапам:
 
@@ -158,10 +161,10 @@
 | `.github` | отсутствует |
 | `uv` | 0.12.13 (`C:/Users/Pavel/.local/bin/uv.exe`); локальный `.venv` создан `uv` |
 | `hatch` | в PATH отсутствует (не установлен) — учтено в ADR-2 |
-| `tests/` | 124 теста (этап 2), покрытие `src/bfportf` — 96% |
-| `examples/prices.csv` | 14.5 МБ, в индексе git |
-| ruff | 0.17.3 (`uv run ruff`) — линт и `ruff format` |
-| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 124 passed, 96% |
+| `tests/` | 130 тестов (этап 4), покрытие `src/bfportf` — 96% |
+| `assets/prices.parquet` | 4.5 МБ, не в индексе git (ассет GitHub-релиза), нужен для ноутбуков |
+| ruff | 0.17.3 (`uv run ruff`) — линт и `ruff format`, `target-version = "py310"` |
+| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 130 passed, 96% |
 | mypy | 2.4.1 + `pandas-stubs`/`types-tqdm`; `uv run mypy src` -> 0 ошибок |
 | Производительность | 200 бумаг x 1000 строк, `max_number=3`: 0.6 c (векторные метрики) против 1.6 c (скалярный путь) |
 | build | wheel 28 КБ (24 файла, `py.typed`), sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`) |
@@ -468,6 +471,11 @@ tests/
 | 2026-11-05 | 3 | Данные примеров переведены на parquet: `assets/prices.parquet` (4.5 МБ, `float32`, 500 символов) вместо `examples/prices.csv`; файл не в git, исключён из sdist, публикуется ассетом GitHub-релиза; ноутбуки ищут локальную копию (`assets/`, рядом, `../assets`), затем качают `releases/latest/download/prices.parquet`, затем конвертируют CSV из `314397c`; `pyarrow>=21.0.0` в зависимостях | nbclient: cwd=`examples` (8.0 / 13.6 / 4.0 c), cwd=корень и cwd=пустой каталог (fallback CSV -> parquet, 5.8 c) — везде 2114x500 и Sharpe 2.352004; `uv lock --check` -> exit 0; pytest 124 passed; ruff/format/mypy чисто; wheel 28.6 КБ с `Requires-Dist: pyarrow`, sdist 38 КБ без parquet/csv | 4b85aa7 |
 | 2026-11-05 | 3 | Обнаружение тестов в VS Code: `[tool.pytest.ini_options]` (`testpaths=["tests"]`, `norecursedirs` с `.venv`/`dist`/`examples`/`assets`), `.vscode/settings.json` (`python.defaultInterpreterPath` -> `.venv`, pytest включён), `.gitignore`: `/.vscode/*` + `!/.vscode/settings.json` | pytest 124 passed, `--collect-only` 124; `git check-ignore` подтверждает, что `settings.json` не игнорируется, а `launch.json` — игнорируется; ruff/format/mypy чисто | 1602250 |
 | 2026-11-05 | 3 | Примеры читают только `prices.parquet`: из ноутбуков 01-03 убраны `CSV_URL` и конвертация CSV из `314397c`, при недоступном ассете — `RuntimeError` с готовой командой `curl`; README Quickstart -> `pd.read_parquet("assets/prices.parquet")`; sdist исключает `examples/*.parquet`; проверка wheel в CI отвергает и `prices.csv`, и `prices.parquet` | nbclient: cwd=`examples` (7.7 / 12.9 / 3.9 c) и cwd=корень (7.7 / 13.0 / 3.9 c) — 2114x500 и Sharpe 2.352004; cwd=пустой каталог -> ожидаемый `RuntimeError` с curl-подсказкой (ассет не опубликован); поиск `csv` по ноутбукам -> 0; pytest 124 passed; ruff/format/mypy чисто; `uv lock --check` exit 0; wheel 24 файла и sdist 42 записи без файлов данных | 1db732b |
+| 2026-11-13 | 4 | Контракт весов (ADR-6): docstring-и `get_portfolio_return`/`find_portfolios`/`create_report`/`portfolio_metric`, раздел README «Weights and normalization», тесты с прямой формулой (`test_portfolio.py`, `test_report.py`, `test_search.py`) | pytest 130 passed; ruff/format/mypy чисто | — |
+| 2026-11-13 | 4 | Keyword-only API (ADR-7): `find_portfolios` (всё после `metric`), `load_returns`, `sanitize_returns`, `validate_returns`, `resolve_metric`, `autocorrelation_target`; `FBT001`/`FBT002` убраны из `ignore`; тесты на `TypeError` при позиционной передаче | pytest 130 passed; ruff/format/mypy чисто | — |
+| 2026-11-13 | 4 | Отказ от Python 3.9: `requires-python >= 3.10`, убран классификатор 3.9, `target-version = "py310"`, аннотации переведены на PEP 604 (`X | None`, `X | Y`), `uv lock` пересчитан (173 пакета) | `uv lock --check` -> OK, `requires-python = ">=3.10"` в lock; pytest/ruff/format/mypy чисто | — |
+| 2026-11-13 | 4 | `pyarrow` перенесён из `dependencies` в extra `examples`: библиотека его больше не устанавливает, ноутбуки ставят через `uv sync --extra examples`; версия пакета `0.3.0` | проверка метаданных wheel: `Requires-Dist: pyarrow` только с extra; pytest 130 passed | — |
+
 
 ---
 
@@ -487,17 +495,13 @@ tests/
 
 - ~~Обратная совместимость~~ -> **ADR-1**: breaking changes допускаются в 0.2.0, шимы не делаем.
 - ~~Тулчейн~~ -> **ADR-2**: полностью переходим на `uv`.
-
-## Открытые вопросы
-
-**Решено:**
-
-- ~~Обратная совместимость~~ -> **ADR-1**: breaking changes допускаются в 0.2.0, шимы не делаем.
-- ~~Тулчейн~~ -> **ADR-2**: полностью переходим на `uv`.
 - ~~Стратегии поиска~~ -> **ADR-3**: `greedy` / `beam` / `exhaustive` — публичные классы стратегий, `greedy` по умолчанию.
 - ~~Формат результата поиска~~ -> **ADR-4**: `find_portfolios` возвращает `list[PortfolioResult]`, DataFrame — через `results_to_frame`.
 - ~~Политика `inf`/`nan`~~ -> реализовано в 0.1.3: метрики возвращают `np.nan`, кандидаты с нефинитным значением отбрасываются.
-- ~~Семантика весов~~ -> реализовано в 0.1.3: дефолт `normalize="sum"`, режим `"none"` доступен явно.
+- ~~Семантика весов~~ -> реализовано в 0.1.3: дефолт `normalize="sum"`, режим `"none"` доступен явно; в 0.3.0 контракт уточнён и закреплён (**ADR-6**).
 - ~~Публикация в PyPI~~ -> **ADR-5**: релиза в PyPI не будет, распространяем `wheel`/`sdist` через GitHub-релизы.
+- ~~Позиционные boolean-параметры~~ -> **ADR-7**: опции публичного API keyword-only.
+- ~~Поддержка Python 3.9~~ -> отброшена в 0.3.0 (`requires-python >= 3.10`), CI-матрица 3.10-3.13 без изменений.
+- ~~`pyarrow` в основных зависимостях~~ -> перенесён в extra `examples`: нужен только ноутбукам для чтения `prices.parquet`.
 
 Открытых вопросов не осталось.

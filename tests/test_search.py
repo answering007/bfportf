@@ -138,3 +138,17 @@ def test_custom_metric_minimize_direction(small_returns: pd.DataFrame) -> None:
     assert len(frame) == len(found)
     assert list(frame["symbols"].iloc[0]) == list(found[0].symbols)
     assert frame["Portfolio"].iloc[0] == ";".join(found[0].symbols)
+
+
+def test_find_portfolios_weights_follow_the_documented_contract(small_returns: pd.DataFrame) -> None:
+    # The weights normalize the aggregate, the caller scales the returns (see the README)
+    weights = pd.Series([0.4, 0.3, 0.15, 0.1, 0.05], index=small_returns.columns)
+    scaled = small_returns * weights
+
+    found = find_portfolios(scaled, "sharpe", custom_weights=weights, max_number=1, verbose=False)
+
+    best = found[0]
+    symbol = best.symbols[0]
+    expected = scaled[symbol].to_numpy() / weights[symbol]
+
+    assert best.value == pytest.approx(METRICS["sharpe"].func(expected))

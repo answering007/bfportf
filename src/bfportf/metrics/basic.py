@@ -9,8 +9,6 @@ Each metric also has a vectorized twin (``*_matrix``) that accepts a 2d array
 (periods x candidates) and returns one value per column; it is used by the search fast path.
 """
 
-from typing import Optional
-
 import numpy as np
 from scipy.stats import kurtosis, pearsonr, skew
 
@@ -101,7 +99,7 @@ def recovery_factor_target(returns: np.ndarray) -> np.float64:
 
 def sharpe_target(
     returns: np.ndarray,
-    periods: Optional[int] = 252,
+    periods: int | None = 252,
     risk_free: float = 0.0,
     ddof: int = 1,
 ) -> np.float64:
@@ -133,7 +131,7 @@ def sharpe_target(
 
 def sortino_target(
     returns: np.ndarray,
-    periods: Optional[int] = 252,
+    periods: int | None = 252,
     risk_free: float = 0.0,
     ddof: int = 1,
 ) -> np.float64:
@@ -198,6 +196,7 @@ def kurtosis_target(returns: np.ndarray) -> np.float64:
 
 def autocorrelation_target(
     returns: np.ndarray,
+    *,
     absolute: bool = True,
     periods: int = 1,
 ) -> np.float64:

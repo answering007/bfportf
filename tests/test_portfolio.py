@@ -115,3 +115,39 @@ def test_calculate_metric_with_array_weights(returns: pd.DataFrame) -> None:
         ],
     )
     pd.testing.assert_series_equal(calculated, expected, check_names=False)
+
+
+def test_weights_are_not_applied_to_the_returns(returns: pd.DataFrame) -> None:
+    # Documented contract: the weights only normalize the aggregate
+    symbols = ["SYM00", "SYM01", "SYM02"]
+    weights = pd.Series(0.0, index=returns.columns)
+    weights[["SYM00", "SYM01", "SYM02"]] = [0.9, 0.05, 0.05]
+
+    result = get_portfolio_return(returns, symbols, weights)
+    expected = returns[symbols].sum(axis=1) / weights[symbols].sum()
+
+    pd.testing.assert_series_equal(result, expected, check_names=False)
+
+
+def test_weighted_portfolio_is_built_from_scaled_returns(returns: pd.DataFrame) -> None:
+    symbols = ["SYM00", "SYM01", "SYM02"]
+    weights = pd.Series(0.0, index=returns.columns)
+    weights[["SYM00", "SYM01", "SYM02"]] = [0.9, 0.05, 0.05]
+    scaled = returns * weights
+
+    result = get_portfolio_return(scaled, symbols, weights)
+    expected = (returns[symbols] * weights[symbols]).sum(axis=1) / weights[symbols].sum()
+
+    pd.testing.assert_series_equal(result, expected, check_names=False)
+
+
+def test_normalize_none_keeps_the_weighted_scale(returns: pd.DataFrame) -> None:
+    symbols = ["SYM00", "SYM01"]
+    weights = pd.Series(0.0, index=returns.columns)
+    weights[["SYM00", "SYM01"]] = [0.7, 0.3]
+    scaled = returns * weights
+
+    result = get_portfolio_return(scaled, symbols, weights, normalize="none")
+    expected = (returns[symbols] * weights[symbols]).sum(axis=1)
+
+    pd.testing.assert_series_equal(result, expected, check_names=False)

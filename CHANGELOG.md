@@ -6,18 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). For `0.x` releases a minor
 version bump may contain breaking changes.
 
-## [Unreleased]
+## [0.3.0] - 2026-11-13
 
 ### Added
 
 - `BfPortf 03 Metrics and strategies.ipynb`: the metric registry, the optimization direction, `tolerance`,
   the cost of the three strategies, the validation errors and short legs.
+- `BfPortf 04 Sequential time series splitting.ipynb`: a walk-forward loop built on a local
+  `split_sequential(data, train_days, test_days)` helper, the stitched out-of-sample returns of all segments,
+  the equity curve and the comparison with the SPY benchmark.
 - CI workflow (`.github/workflows/ci.yml`): `ruff`, `ruff format`, `mypy` and `pytest` on Python
   3.10-3.13 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
   an `examples` extra resolution job.
 - `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout` and whitespace/EOF checks.
-- `examples` optional dependency group (`jupyter`, `quantstats`).
-- `pyarrow` dependency: the example data is stored as parquet.
+- `examples` optional dependency group (`jupyter`, `quantstats`, `pyarrow`).
+- Tests that every optional argument is keyword-only (`find_portfolios`, `load_returns`,
+  `sanitize_returns`, `validate_returns`, `resolve_metric`, `autocorrelation_target`).
 
 ### Changed
 
@@ -32,10 +36,29 @@ version bump may contain breaking changes.
 - The example data is `assets/prices.parquet` (4.5 MB, 500 symbols) instead of `examples/prices.csv` (13.9 MB):
   the notebooks read the parquet file from `assets/` or a copy next to the notebook and download the release
   asset when the file is missing.
+- Documentation of the weights contract: `get_portfolio_return`, `find_portfolios` and `create_report`
+  compute `sum(returns) / sum(weights)`; weights are applied to the returns by the caller (for example by
+  `scale_return_data`), see the README section «Weights and normalization».
+- Type annotations use PEP 604 syntax (`X | None`, `X | Y`).
+
+### Breaking changes
+
+- Python 3.9 is no longer supported: `requires-python = ">=3.10"`.
+- Optional arguments are keyword-only (the ruff `FBT001`/`FBT002` ignores were removed):
+  - `find_portfolios(returns, metric, *, maximize, target_symbols, custom_weights, max_number, verbose,
+    tolerance, validate, strategy)`;
+  - `load_returns(prices, *, drop_nan)`, `sanitize_returns(returns, *, drop_nan_rows)`,
+    `validate_returns(returns, *, allow_nan)`;
+  - `resolve_metric(metric, *, maximize)`, `autocorrelation_target(returns, *, absolute, periods)`.
+- `pyarrow` moved from the runtime dependencies to the `examples` extra: the library no longer installs it.
+  Code that reads parquet files must install `pyarrow` itself.
 
 ### Removed
 
 - `scikit-learn` from the `examples` extra: the notebooks split the time series with a slice.
+- Python 3.9 classifier and `target-version = "py39"`.
+
+## [Unreleased]
 
 ## [0.2.0] - 2026-11-04
 

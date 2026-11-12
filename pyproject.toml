@@ -7,7 +7,7 @@ name = "bfportf"
 dynamic = ["version"]
 description = "Find equity portfolios by a target metric (greedy, beam and exhaustive search)"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE.txt"]
 keywords = ["portfolio", "optimization", "sharpe", "drawdown", "quant", "trading", "backtesting"]
@@ -17,7 +17,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -28,7 +27,6 @@ classifiers = [
 dependencies = [
   "numpy>=1.22",
   "pandas>=1.5",
-  "pyarrow>=21.0.0",
   "scipy>=1.8",
   "tqdm>=4.64",
 ]
@@ -41,6 +39,7 @@ Source = "https://github.com/answering007/bfportf"
 [project.optional-dependencies]
 examples = [
   "jupyter>=1.0",
+  "pyarrow>=21.0.0",
   "quantstats>=0.0.62",
 ]
 
@@ -66,7 +65,6 @@ testpaths = ["tests"]
 norecursedirs = [".git", ".venv", "dist", "examples", "assets", "__pycache__"]
 
 [tool.mypy]
-# mypy 2.x does not support Python 3.9 as a target, the package itself still supports 3.9
 python_version = "3.10"
 files = ["src"]
 check_untyped_defs = true
@@ -76,12 +74,12 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-# scipy-stubs requires Python 3.10.1+, the package still supports 3.9
+# scipy-stubs is not a project dependency
 module = ["scipy.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 120
 # Example notebooks are pedagogical material (intentional import order, print, long URLs)
 extend-exclude = ["examples"]
@@ -123,9 +121,6 @@ ignore = [
   "S105", "S106", "S107",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917",
-  # Public API keeps boolean positional flags (`maximize`, `absolute`);
-  # keyword-only arguments are scheduled for 0.2.0
-  "FBT001", "FBT002",
 ]
 unfixable = [
   # Don't touch unused imports

@@ -1,11 +1,9 @@
 """Price/return conversions and drawdown helpers."""
 
-from typing import Optional
-
 import numpy as np
 
 
-def return_to_price(returns: np.ndarray, first_value: Optional[np.ndarray] = None) -> np.ndarray:
+def return_to_price(returns: np.ndarray, first_value: np.ndarray | None = None) -> np.ndarray:
     """Convert return array to price array.
 
     Args:

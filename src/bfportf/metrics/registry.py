@@ -1,7 +1,6 @@
 """Metrics registry: name -> Metric(name, func, maximize, vectorized)."""
 
 from dataclasses import replace
-from typing import Optional, Union
 
 from bfportf.exceptions import DataValidationError
 from bfportf.metrics.base import Metric, MetricFunction
@@ -27,7 +26,7 @@ from bfportf.metrics.basic import (
     sortino_target_matrix,
 )
 
-MetricLike = Union[str, Metric, MetricFunction]
+MetricLike = str | Metric | MetricFunction
 
 DEFAULT_METRIC = "sharpe"
 
@@ -75,7 +74,7 @@ METRICS: dict = {
 }
 
 
-def resolve_metric(metric: MetricLike, maximize: Optional[bool] = None) -> Metric:
+def resolve_metric(metric: MetricLike, *, maximize: bool | None = None) -> Metric:
     """Resolve a metric reference into a :class:`bfportf.metrics.base.Metric`.
 
     Args:

@@ -51,7 +51,9 @@ def test_report_benchmark_weights_are_used(returns: pd.DataFrame) -> None:
         benchmark_symbols=["SYM01"],
         benchmark_weights=weights,
     )
-    expected = get_portfolio_return(returns, ["SYM01"], weights).to_numpy()
+
+    # Direct formula: the weights only normalize the aggregate, they are not applied to the returns
+    expected = returns["SYM01"].to_numpy() / weights["SYM01"]
 
     assert report.loc["Sharpe ratio", "Benchmark"] == pytest.approx(sharpe_target(expected))
 
@@ -92,5 +94,6 @@ def test_report_with_scaled_weights(returns: pd.DataFrame) -> None:
     scaled, shares = scale_return_data(returns)
     report = create_report(scaled, ["SYM00", "SYM01"], shares, benchmark_symbols=["SYM02"])
 
-    expected = get_portfolio_return(scaled, ["SYM00", "SYM01"], shares).to_numpy()
-    assert report.loc["PnL", "Portfolio"] == pytest.approx(pnl_target(expected))
+    symbols = ["SYM00", "SYM01"]
+    expected = (returns[symbols] * shares[symbols]).sum(axis=1) / shares[symbols].sum()
+    assert report.loc["PnL", "Portfolio"] == pytest.approx(pnl_target(expected.to_numpy()))

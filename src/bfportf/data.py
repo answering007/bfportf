@@ -11,7 +11,7 @@ from bfportf.exceptions import DataValidationError, UnknownSymbolError
 logger = logging.getLogger(__name__)
 
 
-def load_returns(prices: pd.DataFrame, drop_nan: bool = True) -> pd.DataFrame:
+def load_returns(prices: pd.DataFrame, *, drop_nan: bool = True) -> pd.DataFrame:
     """Convert a price dataframe into a dataframe of simple returns.
 
     Args:
@@ -33,7 +33,7 @@ def load_returns(prices: pd.DataFrame, drop_nan: bool = True) -> pd.DataFrame:
     return returns
 
 
-def sanitize_returns(returns: pd.DataFrame, drop_nan_rows: bool = True) -> pd.DataFrame:
+def sanitize_returns(returns: pd.DataFrame, *, drop_nan_rows: bool = True) -> pd.DataFrame:
     """Replace infinite values with ``NaN`` and optionally drop incomplete periods.
 
     Args:
@@ -49,7 +49,7 @@ def sanitize_returns(returns: pd.DataFrame, drop_nan_rows: bool = True) -> pd.Da
     return cleaned
 
 
-def validate_returns(returns: pd.DataFrame, allow_nan: bool = False) -> None:
+def validate_returns(returns: pd.DataFrame, *, allow_nan: bool = False) -> None:
     """Validate a returns dataframe.
 
     Args:

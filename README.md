@@ -141,12 +141,10 @@ See the [examples folder](https://github.com/answering007/bfportf/tree/master/ex
 
 - `BfPortf 01 Simple example.ipynb` — Sharpe ratio search with an in-sample / out-of-sample split, the
   reports and the three search strategies;
-- `BfPortf 02 Custom target function.ipynb` — a custom `Metric`, its direction and a QuantStats report;
+- `BfPortf 02 Custom target function.ipynb` — a custom `Metric`, its direction, the extra registry
+  metrics and a QuantStats report;
 - `BfPortf 03 Metrics and strategies.ipynb` — the registry, the optimization direction, `tolerance`, the
   cost of the strategies, the errors and short legs;
-- `BfPortf 04 Sequential time series splitting.ipynb` — walk-forward validation: a local
-  `split_sequential` helper cuts the history into consecutive train/test segments, the out-of-sample
-  returns are stitched into a single track record and compared with the SPY benchmark.
 
 The example data (`prices.parquet`, 4.5 MB, 500 symbols) is not tracked in git: it lives in `assets/` and is
 published as an asset of the latest GitHub release. The notebooks look for `assets/prices.parquet` (or a copy

@@ -12,9 +12,6 @@ version bump may contain breaking changes.
 
 - `BfPortf 03 Metrics and strategies.ipynb`: the metric registry, the optimization direction, `tolerance`,
   the cost of the three strategies, the validation errors and short legs.
-- `BfPortf 04 Sequential time series splitting.ipynb`: a walk-forward loop built on a local
-  `split_sequential(data, train_days, test_days)` helper, the stitched out-of-sample returns of all segments,
-  the equity curve and the comparison with the SPY benchmark.
 - CI workflow (`.github/workflows/ci.yml`): `ruff`, `ruff format`, `mypy` and `pytest` on Python
   3.10-3.13 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
   an `examples` extra resolution job.
@@ -56,6 +53,8 @@ version bump may contain breaking changes.
 ### Removed
 
 - `scikit-learn` from the `examples` extra: the notebooks split the time series with a slice.
+- `BfPortf 04 Sequential time series splitting.ipynb` was dropped: the walk-forward example left the
+  examples, the single in-sample / out-of-sample split of `01` and `02` stays the out-of-sample check.
 - Python 3.9 classifier and `target-version = "py39"`.
 
 ## [Unreleased]

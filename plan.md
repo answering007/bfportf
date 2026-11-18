@@ -1,7 +1,7 @@
 # План развития проекта bfportf
 
-> Рабочая ветка: **dev**
-> Базовый коммит: `314397c` ("set train_weights to out-of-sample results")
+> Рабочая ветка: **dev**; релиз `v0.3.0` — тег на `master`
+> Базовый коммит аудита: `314397c` ("set train_weights to out-of-sample results"); HEAD `dev` на момент релиза: `400cd5a`
 > Текущая версия пакета: `0.3.0` (`src/bfportf/__about__.py`)
 > Документ ведётся итеративно: после каждого завершённого шага обновляются разделы «Статус» и «Журнал изменений».
 
@@ -48,8 +48,9 @@
 | 2 | Архитектура: разбиение на слои, реестр метрик, стратегии поиска, публичный API | `[x]` (0.2.0) |
 | 3 | Упаковка, CI, документация, данные примеров | `[x]` (0.2.0) |
 | 4 | Контракт весов, keyword-only API, отказ от Python 3.9, `pyarrow` в extra | `[x]` (0.3.0) |
+| 5 | Подготовка релиза 0.3.0: чистка артефактов, `LICENSE`, `CHANGELOG`, README, актуализация типов | `[x]` (0.3.0) |
 
-**Готовность к использованию:** все этапы 0-4 закрыты. Публичный API, три стратегии, реестр метрик с направлением, векторный fast-path (2.7x), 130 тестов и покрытие 96%, `mypy` без ошибок, CI-workflow и pre-commit, wheel 28 КБ (с `py.typed`) и sdist 33 КБ без `prices.csv`/`uv.lock`. Релиза в PyPI нет по ADR-5 — артефакты прикладываются к GitHub-релизу. В 0.3.0: документированный контракт весов (ADR-6), keyword-only опции (ADR-7), `requires-python >= 3.10`, `pyarrow` перенесён в extra `examples`.
+**Готовность к использованию:** все этапы 0-5 закрыты. Публичный API, три стратегии, реестр метрик с направлением, векторный fast-path (2.7x), 132 теста и покрытие 96%, `mypy` без ошибок, CI-workflow (Python 3.10-3.14) и pre-commit. Релиза в PyPI нет по ADR-5 — артефакты (wheel, sdist, `prices.parquet`) прикладываются к GitHub-релизу `v0.3.0`. В 0.3.0: документированный контракт весов (ADR-6), keyword-only опции (ADR-7), `requires-python >= 3.10`, `pyarrow` перенесён в extra `examples`.
 
 ---
 
@@ -109,14 +110,14 @@
 
 ### Этап 3 (0.2.0) — выполнено
 
-- `[x]` **P2-2.** `.github/workflows/ci.yml`: job `quality` (matrix 3.10-3.13, `uv sync --locked`, ruff, ruff format, mypy, pytest с покрытием), job `build` (wheel/sdist, проверка содержимого, установка в чистое окружение), job `examples` (резолв extra).
+- `[x]` **P2-2.** `.github/workflows/ci.yml`: job `quality` (matrix 3.10-3.14, `uv sync --locked`, ruff, ruff format, mypy, pytest с покрытием), job `build` (wheel/sdist, проверка содержимого, установка в чистое окружение), job `examples` (резолв extra).
 - `[x]` **P2-2.** `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout`, whitespace/EOF, `check-added-large-files` (1 МБ).
 - `[x]` **P2-3.** Метаданные: реальные URL GitHub, автор, `license-files` (PEP 639), `hatchling>=1.27`, `keywords`, описание; заголовки SPDX в `__about__.py` и `tests/__init__.py`.
 - `[x]` **P2-4.** `examples/prices.csv` (14.5 МБ) убран из индекса git и из sdist; ноутбуки качают данные по URL; output-ы ноутбуков вычищены.
 - `[x]` **P2-5.** `[project.optional-dependencies] examples` (`scikit-learn`, `quantstats`, `jupyter`); `uv.lock` пересобран и включает extra.
 - `[x]` **P2-9.** README: установка из wheel (ADR-5), Quickstart, метрики, стратегии, веса, команды разработки; `CHANGELOG.md` с разделом `[Unreleased]`.
 - `[x]` **P2-4.** Примеры переведены на API 0.2: слайс вместо `train_test_split`, inverse-vol веса оцениваются только in-sample (тест масштабируется теми же весами), кастомная метрика через `Metric`, стратегии сравниваются на одной вселенной, показаны `tolerance`, ошибки и инверсные ноги. Добавлен ноутбук `03 Metrics and strategies`.
-- `[x]` **P2-4.** Данные примеров: `assets/prices.parquet` (4.5 МБ, 500 символов, `float32`) вместо `examples/prices.csv` (13.9 МБ); файл не в git (`/assets/*.parquet`), исключён из sdist, публикуется ассетом GitHub-релиза. Ноутбуки читают только parquet: берут локальную копию (`assets/` или рядом), иначе скачивают ассет `releases/latest/download/prices.parquet`. CSV-резерв (конвертация из коммита `314397c`) удалён. Чтение parquet требует `pyarrow` (в `dependencies`).
+- `[x]` **P2-4.** Данные примеров: `assets/prices.parquet` (4.5 МБ, 500 символов, `float32`) вместо `examples/prices.csv` (13.9 МБ); файл не в git (`/assets/*.parquet`), исключён из sdist, публикуется ассетом GitHub-релиза. Ноутбуки читают только parquet: берут локальную копию (`assets/` или рядом), иначе скачивают ассет `releases/latest/download/prices.parquet`. CSV-резерв (конвертация из коммита `314397c`) удалён. Чтение parquet требует `pyarrow` (в 0.3.0 перенесён в extra `examples`).
 - `[x]` **ADR-5.** PyPI-бейджи удалены, установка документирована как `pip install <wheel>`, `uv build` входит в CI.
 - `[x]` Проверка сборки: `uv build` -> wheel 28 КБ (24 файла, `py.typed`, без CSV) и sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`); установка wheel в чистое venv -> `0.2.0 35 sharpe`.
 - `[x]` YAML-файлы (CI и pre-commit) провалидированы локально (`yaml.safe_load`).
@@ -161,13 +162,13 @@
 | `.github` | отсутствует |
 | `uv` | 0.12.13 (`C:/Users/Pavel/.local/bin/uv.exe`); локальный `.venv` создан `uv` |
 | `hatch` | в PATH отсутствует (не установлен) — учтено в ADR-2 |
-| `tests/` | 130 тестов (этап 4), покрытие `src/bfportf` — 96% |
+| `tests/` | 132 теста (этап 5), покрытие `src/bfportf` — 96% |
 | `assets/prices.parquet` | 4.5 МБ, не в индексе git (ассет GitHub-релиза), нужен для ноутбуков |
 | ruff | 0.17.3 (`uv run ruff`) — линт и `ruff format`, `target-version = "py310"` |
-| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 130 passed, 96% |
+| pytest | 9.2.0 + pytest-cov 7.1.0; `uv run pytest -q --cov=bfportf` -> 132 passed, 96% |
 | mypy | 2.4.1 + `pandas-stubs`/`types-tqdm`; `uv run mypy src` -> 0 ошибок |
 | Производительность | 200 бумаг x 1000 строк, `max_number=3`: 0.6 c (векторные метрики) против 1.6 c (скалярный путь) |
-| build | wheel 28 КБ (24 файла, `py.typed`), sdist 33 КБ (без `prices.csv`, `uv.lock`, `plan.md`) |
+| build | wheel 28.8 КБ (24 файла, `py.typed`), sdist 41.7 КБ (3 ноутбука; без `prices.parquet`, `uv.lock`, `plan.md`, `.github`) |
 | CI / pre-commit | `.github/workflows/ci.yml` (jobs: quality / build / examples), `.pre-commit-config.yaml` |
 
 Команды воспроизведения исходных дефектов (до этапа 0):
@@ -416,7 +417,7 @@ src/bfportf/
 - sdist ужат с 555 КБ до 33 КБ: исключены `uv.lock` (1.7 МБ), `plan.md`, `examples/prices.csv`, `.github`, `.pre-commit-config.yaml`.
 - Wheel (28 КБ, 24 файла) содержит `py.typed` и все модули пакета; установка в чистое venv подтягивает только `numpy`/`pandas`/`scipy`/`tqdm`.
 - `examples` extra тянет `jupyter`, `quantstats`, `scikit-learn` — в `uv.lock` 251 пакет с учётом extra; CI-job `examples` проверяет только резолв, чтобы не устанавливать Jupyter на каждый прогон.
-- `examples/prices.csv` удалён и из индекса, и с диска; чтения CSV в примерах нет. Рабочий формат — `assets/prices.parquet` (4.5 МБ, `float32`), он не в git (`/assets/*.parquet`), исключён из sdist и публикуется ассетом GitHub-релиза; при отсутствии локальной копии ноутбук скачивает ассет, а при недоступности падает с подсказкой `curl`. Чтение parquet требует `pyarrow` (в `dependencies`).
+- `examples/prices.csv` удалён и из индекса, и с диска; чтения CSV в примерах нет. Рабочий формат — `assets/prices.parquet` (4.5 МБ, `float32`), он не в git (`/assets/*.parquet`), исключён из sdist и публикуется ассетом GitHub-релиза; при отсутствии локальной копии ноутбук скачивает ассет, а при недоступности падает с подсказкой `curl`. Чтение parquet требует `pyarrow` (в 0.3.0 — extra `examples`).
 - Версии `rev` в `.pre-commit-config.yaml` зафиксированы вручную; обновление — `uv run pre-commit autoupdate`.
 - ruff по-прежнему исключает `examples/` (P2-10): в ячейках примеров осмысленный порядок импортов и длинные URL.
 
@@ -475,6 +476,7 @@ tests/
 | 2026-11-13 | 4 | Keyword-only API (ADR-7): `find_portfolios` (всё после `metric`), `load_returns`, `sanitize_returns`, `validate_returns`, `resolve_metric`, `autocorrelation_target`; `FBT001`/`FBT002` убраны из `ignore`; тесты на `TypeError` при позиционной передаче | pytest 130 passed; ruff/format/mypy чисто | — |
 | 2026-11-13 | 4 | Отказ от Python 3.9: `requires-python >= 3.10`, убран классификатор 3.9, `target-version = "py310"`, аннотации переведены на PEP 604 (`X | None`, `X | Y`), `uv lock` пересчитан (173 пакета) | `uv lock --check` -> OK, `requires-python = ">=3.10"` в lock; pytest/ruff/format/mypy чисто | — |
 | 2026-11-13 | 4 | `pyarrow` перенесён из `dependencies` в extra `examples`: библиотека его больше не устанавливает, ноутбуки ставят через `uv sync --extra examples`; версия пакета `0.3.0` | проверка метаданных wheel: `Requires-Dist: pyarrow` только с extra; pytest 130 passed | — |
+| 2026-11-18 | 5 | Подготовка релиза 0.3.0: удалены артефакты (`.coverage`, кеши, старый `dist/`, `__pycache__` с pyc удалённых тестов); `LICENSE.txt` — реальный копирайт вместо заглушки hatch; `CHANGELOG` — `[Unreleased]` наверх, 0.3.0 датирован 2026-11-18; README — заголовок, раздел Changelog, CI 3.10-3.14; `.gitignore` без дубля `/dist`; уточнены аннотации (`list[str]`, `dict[str, Metric]`, `tuple[...]`, `list[PortfolioResult]`); тест `results_to_frame` вынесен отдельно; CI-матрица 3.10-3.14, классификатор 3.14 | pytest 133 passed, покрытие 96%; ruff/format/mypy чисто; `uv lock --check` OK; `uv build` -> wheel 28.8 КБ (24 файла, `py.typed`), sdist 41.7 КБ; установка wheel в чистое venv -> `0.3.0 35`; nbclient: 01 — 9.9 c, 02 — 11.7 c, 03 — 4.0 c | — |
 
 
 ---
@@ -501,7 +503,7 @@ tests/
 - ~~Семантика весов~~ -> реализовано в 0.1.3: дефолт `normalize="sum"`, режим `"none"` доступен явно; в 0.3.0 контракт уточнён и закреплён (**ADR-6**).
 - ~~Публикация в PyPI~~ -> **ADR-5**: релиза в PyPI не будет, распространяем `wheel`/`sdist` через GitHub-релизы.
 - ~~Позиционные boolean-параметры~~ -> **ADR-7**: опции публичного API keyword-only.
-- ~~Поддержка Python 3.9~~ -> отброшена в 0.3.0 (`requires-python >= 3.10`), CI-матрица 3.10-3.13 без изменений.
+- ~~Поддержка Python 3.9~~ -> отброшена в 0.3.0 (`requires-python >= 3.10`), CI-матрица 3.10-3.14.
 - ~~`pyarrow` в основных зависимостях~~ -> перенесён в extra `examples`: нужен только ноутбукам для чтения `prices.parquet`.
 
 Открытых вопросов не осталось.

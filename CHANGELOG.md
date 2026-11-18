@@ -6,14 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). For `0.x` releases a minor
 version bump may contain breaking changes.
 
-## [0.3.0] - 2026-11-13
+## [Unreleased]
+
+## [0.3.0] - 2026-11-18
 
 ### Added
 
 - `BfPortf 03 Metrics and strategies.ipynb`: the metric registry, the optimization direction, `tolerance`,
   the cost of the three strategies, the validation errors and short legs.
 - CI workflow (`.github/workflows/ci.yml`): `ruff`, `ruff format`, `mypy` and `pytest` on Python
-  3.10-3.13 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
+  3.10-3.14 with `uv sync --locked`, a build job that installs the wheel into a clean environment and
   an `examples` extra resolution job.
 - `.pre-commit-config.yaml`: `uv-lock`, `ruff`, `ruff-format`, `nbstripout` and whitespace/EOF checks.
 - `examples` optional dependency group (`jupyter`, `quantstats`, `pyarrow`).
@@ -56,8 +58,6 @@ version bump may contain breaking changes.
 - `BfPortf 04 Sequential time series splitting.ipynb` was dropped: the walk-forward example left the
   examples, the single in-sample / out-of-sample split of `01` and `02` stays the out-of-sample check.
 - Python 3.9 classifier and `target-version = "py39"`.
-
-## [Unreleased]
 
 ## [0.2.0] - 2026-11-04
 

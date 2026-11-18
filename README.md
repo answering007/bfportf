@@ -1,6 +1,6 @@
 # bfportf
 
-**Python 3.10+ | MIT | no PyPI release — install the wheel from the GitHub releases**
+**Python 3.10+ | MIT | wheels and sdists are attached to the GitHub releases (no PyPI package)**
 
 Tool to find equity portfolios by a target metric (Sharpe ratio, drawdown, profit factor, ...) with
 greedy, beam or exhaustive search.
@@ -16,6 +16,7 @@ greedy, beam or exhaustive search.
 - [Weights and normalization](#weights-and-normalization)
 - [Examples](#examples)
 - [Development](#development)
+- [Changelog](#changelog)
 - [License](#license)
 
 ## Installation
@@ -175,8 +176,13 @@ uv run mypy src
 uv run pre-commit install      # optional: ruff, ruff-format, nbstripout, uv-lock on commit
 ```
 
-The CI workflow (`.github/workflows/ci.yml`) runs the same checks on Python 3.10-3.13 with
+The CI workflow (`.github/workflows/ci.yml`) runs the same checks on Python 3.10-3.14 with
 `uv sync --locked`, then builds the wheel and installs it into a clean environment.
+
+## Changelog
+
+Release notes are kept in [CHANGELOG.md](CHANGELOG.md) (the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+format). The package version lives in `src/bfportf/__about__.py` and is exposed as `bfportf.__version__`.
 
 ## License
 

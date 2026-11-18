@@ -24,8 +24,9 @@ version bump may contain breaking changes.
 
 ### Changed
 
-- Distribution without PyPI: wheels and sdists are attached to GitHub releases (see ADR-5 in
-  `plan.md`), the PyPI badges were removed from the README.
+- Distribution without PyPI: wheels and sdists are attached to GitHub releases, the PyPI badges were
+  removed from the README, and the installation is documented as installing the wheel from the
+  release assets.
 - Package metadata: PEP 639 `license-files`, real project URLs, author, keywords,
   `hatchling>=1.27`.
 - Examples are ported to the 0.2 API: a plain time series slice instead of `train_test_split`, the inverse
@@ -58,6 +59,8 @@ version bump may contain breaking changes.
 - `BfPortf 04 Sequential time series splitting.ipynb` was dropped: the walk-forward example left the
   examples, the single in-sample / out-of-sample split of `01` and `02` stays the out-of-sample check.
 - Python 3.9 classifier and `target-version = "py39"`.
+- `plan.md` — the internal planning document — was removed from the repository; the decisions it
+  recorded live in this changelog and the README.
 
 ## [0.2.0] - 2026-11-04
 

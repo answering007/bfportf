@@ -166,6 +166,5 @@ exclude = [
   "/.pre-commit-config.yaml",
   "/assets/*.parquet",
   "/examples/*.parquet",
-  "/plan.md",
   "/uv.lock",
 ]

@@ -51,7 +51,7 @@ class BeamSearch:
         metric: Metric,
         target_symbol: str,
         config: SearchConfig,
-    ) -> tuple:
+    ) -> tuple[tuple[str, ...], float]:
         """Select a portfolio for the target symbol.
 
         Args:
@@ -63,7 +63,7 @@ class BeamSearch:
             config (SearchConfig): Search configuration.
 
         Returns:
-            tuple: ``(portfolio_symbols, metric value)``.
+            tuple[tuple[str, ...], float]: ``(portfolio_symbols, metric value)``.
 
         Raises:
             UnknownSymbolError: If ``target_symbol`` is missing from ``symbols``.

@@ -30,7 +30,7 @@ MetricLike = str | Metric | MetricFunction
 
 DEFAULT_METRIC = "sharpe"
 
-METRICS: dict = {
+METRICS: dict[str, Metric] = {
     "pnl": Metric("pnl", pnl_target, True, pnl_target_matrix, "Total compounded return"),
     "cagr": Metric("cagr", cagr_target, True, cagr_target_matrix, "Compound annual growth rate"),
     "max_drawdown": Metric(

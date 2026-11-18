@@ -11,7 +11,7 @@ def scale_return_data(
     df_return: pd.DataFrame,
     target_return: float | None = None,
     target_symbol: str | None = None,
-) -> tuple:
+) -> tuple[pd.DataFrame, pd.Series]:
     """Scale return (pct_change) data to equal average abs return.
 
     Args:
@@ -23,7 +23,8 @@ def scale_return_data(
             If it is not None target_return will be ignored. Defaults to None.
 
     Returns:
-        tuple: Scaled returns dataframe and shares series (weights that sum up to one).
+        tuple[pd.DataFrame, pd.Series]: Scaled returns dataframe and shares series (weights that sum
+        up to one).
 
     Raises:
         UnknownSymbolError: If ``target_symbol`` is missing from the dataframe.
@@ -56,7 +57,7 @@ def add_inverted_return(
     returns: pd.DataFrame,
     inverted_symbols: Sequence[str],
     postfix: str = "-1",
-) -> tuple:
+) -> tuple[pd.DataFrame, list[str]]:
     """Add inverted return columns to the dataframe.
 
     Args:
@@ -65,7 +66,8 @@ def add_inverted_return(
         postfix (str, optional): Postfix for each inverted column name. Defaults to "-1".
 
     Returns:
-        tuple: Dataframe with inverted returns and list of inverted column names.
+        tuple[pd.DataFrame, list[str]]: Dataframe with inverted returns and list of inverted column
+        names.
 
     Raises:
         UnknownSymbolError: If an inverted symbol is missing from the dataframe.

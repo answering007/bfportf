@@ -11,7 +11,7 @@ import pandas as pd
 
 from bfportf.metrics.registry import MetricLike, resolve_metric
 from bfportf.portfolio import resolve_weights
-from bfportf.search.base import SearchConfig, SearchStrategy, run_search
+from bfportf.search.base import PortfolioResult, SearchConfig, SearchStrategy, run_search
 from bfportf.search.greedy import GreedySearch
 
 
@@ -27,7 +27,7 @@ def find_portfolios(
     tolerance: float = 0.0,
     validate: bool = True,
     strategy: SearchStrategy | None = None,
-) -> list:
+) -> list[PortfolioResult]:
     """Find the best portfolio for every symbol with the given metric.
 
     Args:
@@ -54,7 +54,7 @@ def find_portfolios(
             (:class:`bfportf.search.GreedySearch`).
 
     Returns:
-        list: ``list[PortfolioResult]`` ordered from the best to the worst. Use
+        list[PortfolioResult]: Results ordered from the best to the worst. Use
         :func:`bfportf.search.results_to_frame` to get a dataframe.
 
     Raises:

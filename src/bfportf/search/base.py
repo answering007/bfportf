@@ -47,13 +47,13 @@ class PortfolioResult:
     """A portfolio found by a search strategy.
 
     Attributes:
-        symbols (tuple): Portfolio symbols in the order of the returns columns.
+        symbols (tuple[str, ...]): Portfolio symbols in the order of the returns columns.
         weights (pd.Series): Weights of the portfolio symbols, rescaled to sum up to one.
         value (float): Metric value of the portfolio.
         metric_name (str): Name of the optimized metric.
     """
 
-    symbols: tuple
+    symbols: tuple[str, ...]
     weights: pd.Series
     value: float
     metric_name: str
@@ -63,7 +63,7 @@ class PortfolioResult:
         """Symbols joined by a semicolon (the legacy ``Portfolio`` column)."""
         return ";".join(self.symbols)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Plain python representation, convenient for logging or JSON."""
         return {
             "symbols": list(self.symbols),
@@ -98,7 +98,7 @@ class SearchStrategy(Protocol):
         metric: Metric,
         target_symbol: str,
         config: SearchConfig,
-    ) -> tuple:
+    ) -> tuple[tuple[str, ...], float]:
         """Select a portfolio for the target symbol and return ``(symbols, metric value)``."""
 
 
@@ -150,7 +150,7 @@ def candidate_values(
     return metric.evaluate_matrix(matrix)
 
 
-def sort_key(value: float, metric: Metric) -> tuple:
+def sort_key(value: float, metric: Metric) -> tuple[int, float]:
     """Sort key that puts better values first and ``nan`` values last."""
     if not np.isfinite(value):
         return (1, 0.0)
@@ -167,7 +167,9 @@ def improves(value: float, current: float, metric: Metric, tolerance: float = 0.
     return bool(np.isfinite(delta) and delta > tolerance)
 
 
-def best_candidate(values: np.ndarray, metric: Metric, current: float, tolerance: float = 0.0) -> tuple | None:
+def best_candidate(
+    values: np.ndarray, metric: Metric, current: float, tolerance: float = 0.0
+) -> tuple[float, int] | None:
     """Return ``(value, position)`` of the best candidate that improves ``current``.
 
     Candidates with non finite values are ignored, so degenerate portfolios are never selected.
@@ -212,7 +214,7 @@ def run_search(
     metric: Metric,
     config: SearchConfig,
     target_symbols: Sequence[str] | None = None,
-) -> list:
+) -> list[PortfolioResult]:
     """Run the strategy for every target symbol and build the ordered results.
 
     Args:
@@ -225,7 +227,7 @@ def run_search(
             (all columns).
 
     Returns:
-        list: ``list[PortfolioResult]`` ordered from the best to the worst.
+        list[PortfolioResult]: Results ordered from the best to the worst.
 
     Raises:
         UnknownSymbolError: If a target symbol is missing from the returns columns.
@@ -256,7 +258,7 @@ def run_search(
 
     ordered = sorted(best_values.items(), key=lambda item: sort_key(item[1], metric))
 
-    results = []
+    results: list[PortfolioResult] = []
     for found_symbols, value in ordered:
         results.append(
             PortfolioResult(

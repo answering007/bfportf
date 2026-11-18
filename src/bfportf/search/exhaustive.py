@@ -66,7 +66,7 @@ class ExhaustiveSearch:
         metric: Metric,
         target_symbol: str,
         config: SearchConfig,
-    ) -> tuple:
+    ) -> tuple[tuple[str, ...], float]:
         """Select the best portfolio that contains the target symbol.
 
         Args:
@@ -78,7 +78,7 @@ class ExhaustiveSearch:
             config (SearchConfig): Search configuration.
 
         Returns:
-            tuple: ``(portfolio_symbols, metric value)``.
+            tuple[tuple[str, ...], float]: ``(portfolio_symbols, metric value)``.
 
         Raises:
             UnknownSymbolError: If ``target_symbol`` is missing from ``symbols``.

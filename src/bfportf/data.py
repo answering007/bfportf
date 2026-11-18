@@ -92,7 +92,7 @@ def validate_returns(returns: pd.DataFrame, *, allow_nan: bool = False) -> None:
         logger.warning("Zero dispersion (constant) columns, weighted metrics are undefined: %s", zero_dispersion)
 
 
-def validate_symbols(returns: pd.DataFrame, symbols: Sequence[str]) -> list:
+def validate_symbols(returns: pd.DataFrame, symbols: Sequence[str]) -> list[str]:
     """Check that every symbol is present in the returns columns.
 
     Args:
@@ -100,7 +100,7 @@ def validate_symbols(returns: pd.DataFrame, symbols: Sequence[str]) -> list:
         symbols (Sequence[str]): Symbols to validate.
 
     Returns:
-        list: List of validated symbols.
+        list[str]: List of validated symbols.
 
     Raises:
         DataValidationError: If the symbol list is empty.

@@ -131,6 +131,8 @@ def test_custom_metric_minimize_direction(small_returns: pd.DataFrame) -> None:
     assert found[0].value == pytest.approx(min(values))
     assert found[0].metric_name == "spread"
 
+
+def test_results_to_frame_layout(small_returns: pd.DataFrame) -> None:
     found = find_portfolios(small_returns, "sharpe", max_number=2, verbose=False)
     frame = results_to_frame(found)
 
